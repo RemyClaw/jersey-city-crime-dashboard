@@ -433,6 +433,14 @@ function toggleLayer(group){
   if(group==='districts') distLayers.forEach(l=>map.setLayoutProperty(l,'visibility',vis));
   if(group==='precincts') allMarkers.forEach(m=>{ m.el.style.display=vis==='visible'?'flex':'none'; });
 }
+
+// TODO: Time filter — allow filtering crime data by year (2022/2023/2024)
+// TODO: Crime type filter — toggle specific crime categories on/off
+// TODO: Mobile responsive layout — hamburger menu or bottom sheet for sidebar
+// TODO: Export to PDF — generate a one-page summary report
+// TODO: Live data feed — connect to JC Open Data Portal calls-for-service API
+// TODO: Multi-city support — allow switching between JC, Newark, Paterson
+// TODO: Authentication layer — for paid B2B version
 </script>
 </body>
 </html>
