@@ -586,80 +586,121 @@ const pathStationsData = {
 const liquorQuery = `
 [out:json][timeout:25][bbox:40.6500,-74.1400,40.7700,-74.0200];
 (
-  node["amenity"="bar"];
-  node["amenity"="pub"];
-  node["amenity"="nightclub"];
-  node["shop"="alcohol"];
-  node["shop"="wine"];
-  node["shop"="beverages"]["drink:alcohol"="yes"];
+  nwr["amenity"="bar"];
+  nwr["amenity"="pub"];
+  nwr["amenity"="nightclub"];
+  nwr["shop"="alcohol"];
+  nwr["shop"="wine"];
+  nwr["shop"="beverages"]["drink:alcohol"="yes"];
 );
-out body;
+out center;
 `;
 
 const checkCashingQuery = `
 [out:json][timeout:25][bbox:40.6500,-74.1400,40.7700,-74.0200];
 (
-  node["amenity"="money_transfer"];
-  node["shop"="pawnbroker"];
-  node["shop"="money_lender"];
-  node["amenity"="bureau_de_change"];
-  node["name"~"check cash",i];
-  node["name"~"payday",i];
-  node["name"~"pawn",i];
-  node["name"~"EZCorp",i];
-  node["name"~"ACE Cash",i];
+  nwr["amenity"="money_transfer"];
+  nwr["shop"="pawnbroker"];
+  nwr["shop"="money_lender"];
+  nwr["amenity"="bureau_de_change"];
+  nwr["name"~"check cash",i];
+  nwr["name"~"payday",i];
+  nwr["name"~"pawn",i];
+  nwr["name"~"EZCorp",i];
+  nwr["name"~"ACE Cash",i];
 );
-out body;
+out center;
 `;
 
 const vacantQuery = `
 [out:json][timeout:25][bbox:40.6500,-74.1400,40.7700,-74.0200];
 (
-  node["landuse"="brownfield"];
-  node["landuse"="vacant"];
-  node["building"="abandoned"];
-  node["disused"="yes"];
-  node["abandoned"="yes"];
+  nwr["landuse"="brownfield"];
+  nwr["landuse"="vacant"];
+  nwr["building"="abandoned"];
+  nwr["disused"="yes"];
+  nwr["abandoned"="yes"];
 );
-out body;
+out center;
 `;
 
 const parksQuery = `
 [out:json][timeout:25][bbox:40.6500,-74.1400,40.7700,-74.0200];
 (
-  node["leisure"="park"];
-  node["leisure"="playground"];
-  node["leisure"="recreation_ground"];
-  node["leisure"="sports_centre"];
+  nwr["leisure"="park"];
+  nwr["leisure"="playground"];
+  nwr["leisure"="recreation_ground"];
+  nwr["leisure"="sports_centre"];
 );
-out body;
+out center;
 `;
 
 async function fetchOverpassPOI(query) {
-  const url = 'https://overpass-api.de/api/interpreter';
   const body = 'data=' + encodeURIComponent(query);
+  const overpassEndpoints = [
+    'https://overpass-api.de/api/interpreter',
+    'https://lz4.overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter'
+  ];
+
+  function getCoords(el) {
+    if (typeof el.lat === 'number' && typeof el.lon === 'number') {
+      return [el.lon, el.lat];
+    }
+    if (el.center && typeof el.center.lat === 'number' && typeof el.center.lon === 'number') {
+      return [el.center.lon, el.center.lat];
+    }
+    return null;
+  }
+
+  let lastError = null;
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body
-    });
-    const json = await res.json();
-    const features = (json.elements || [])
-      .filter((el)=>el.lat && el.lon)
-      .map((el)=>({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [el.lon, el.lat] },
-        properties: {
-          name: (el.tags && (el.tags.name || el.tags.brand)) || 'Unnamed',
-          type: (el.tags && (el.tags.amenity || el.tags.shop || el.tags.landuse)) || '',
-          ...(el.tags || {})
+    for (const url of overpassEndpoints) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body
+        });
+        if (!res.ok) {
+          throw new Error(`Overpass ${res.status} at ${url}`);
         }
-      }));
-    return { type: 'FeatureCollection', features };
+
+        const json = await res.json();
+        const features = (json.elements || [])
+          .map((el) => {
+            const coords = getCoords(el);
+            if (!coords) return null;
+            return {
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: coords },
+              properties: {
+                name: (el.tags && (el.tags.name || el.tags.brand)) || 'Unnamed',
+                type: (el.tags && (el.tags.amenity || el.tags.shop || el.tags.landuse || el.tags.leisure)) || '',
+                ...(el.tags || {})
+              }
+            };
+          })
+          .filter(Boolean);
+
+        return { type: 'FeatureCollection', features };
+      } catch (err) {
+        lastError = err;
+      }
+    }
   } catch (err) {
-    console.warn('Overpass fetch failed:', err);
-    return { type: 'FeatureCollection', features: [] };
+    lastError = err;
+  }
+  if (lastError) {
+    console.warn('Overpass fetch failed on all endpoints:', lastError);
+  }
+  return { type: 'FeatureCollection', features: [] };
+}
+
+function hideLayerLoading() {
+  const el = document.getElementById('layer-loading-indicator');
+  if (el) {
+    el.style.display = 'none';
   }
 }
 
@@ -674,168 +715,184 @@ function showLayerLoading(label) {
 
 async function loadLiquorLayer() {
   showLayerLoading('Liquor Stores');
-  const data = await fetchOverpassPOI(liquorQuery);
+  try {
+    const data = await fetchOverpassPOI(liquorQuery);
 
-  if (map.getSource('liquor-stores')) {
-    map.getSource('liquor-stores').setData(data);
-    return;
-  }
-
-  map.addSource('liquor-stores', { type: 'geojson', data });
-
-  map.addLayer({
-    id: 'liquor-stores-layer',
-    type: 'circle',
-    source: 'liquor-stores',
-    layout: { visibility: 'none' },
-    paint: {
-      'circle-radius': 5,
-      'circle-color': '#f43f5e',
-      'circle-opacity': 0.8,
-      'circle-stroke-width': 1,
-      'circle-stroke-color': '#0a0c10'
+    if (map.getSource('liquor-stores')) {
+      map.getSource('liquor-stores').setData(data);
+      return;
     }
-  });
 
-  map.on('click', 'liquor-stores-layer', (e) => {
-    const p = e.features[0].properties;
-    const typeLabel = p.amenity === 'bar' ? 'Bar' : p.amenity === 'nightclub' ? 'Nightclub' : p.amenity === 'pub' ? 'Pub' : 'Liquor Store';
-    new mapboxgl.Popup({ closeButton: false })
-      .setLngLat(e.features[0].geometry.coordinates)
-      .setHTML(`
+    map.addSource('liquor-stores', { type: 'geojson', data });
+
+    map.addLayer({
+      id: 'liquor-stores-layer',
+      type: 'circle',
+      source: 'liquor-stores',
+      layout: { visibility: 'none' },
+      paint: {
+        'circle-radius': 5,
+        'circle-color': '#f43f5e',
+        'circle-opacity': 0.8,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': '#0a0c10'
+      }
+    });
+
+    map.on('click', 'liquor-stores-layer', (e) => {
+      const p = e.features[0].properties;
+      const typeLabel = p.amenity === 'bar' ? 'Bar' : p.amenity === 'nightclub' ? 'Nightclub' : p.amenity === 'pub' ? 'Pub' : 'Liquor Store';
+      new mapboxgl.Popup({ closeButton: false })
+        .setLngLat(e.features[0].geometry.coordinates)
+        .setHTML(`
         <div style="font-family:'DM Sans',sans-serif;padding:4px">
           <div style="font-family:'Space Mono',monospace;font-size:10px;color:#f43f5e;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${typeLabel}</div>
           <div style="font-size:13px;font-weight:600;color:#e8eaed">${p.name}</div>
         </div>
       `)
-      .addTo(map);
-  });
-  map.on('mouseenter', 'liquor-stores-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
-  map.on('mouseleave', 'liquor-stores-layer', () => { map.getCanvas().style.cursor = ''; });
+        .addTo(map);
+    });
+    map.on('mouseenter', 'liquor-stores-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'liquor-stores-layer', () => { map.getCanvas().style.cursor = ''; });
+  } finally {
+    hideLayerLoading();
+  }
 }
 
 async function loadCheckCashingLayer() {
   showLayerLoading('Check Cashing');
-  const data = await fetchOverpassPOI(checkCashingQuery);
+  try {
+    const data = await fetchOverpassPOI(checkCashingQuery);
 
-  if (map.getSource('check-cashing')) {
-    map.getSource('check-cashing').setData(data);
-    return;
-  }
-
-  map.addSource('check-cashing', { type: 'geojson', data });
-
-  map.addLayer({
-    id: 'check-cashing-layer',
-    type: 'circle',
-    source: 'check-cashing',
-    layout: { visibility: 'none' },
-    paint: {
-      'circle-radius': 5,
-      'circle-color': '#fb923c',
-      'circle-opacity': 0.85,
-      'circle-stroke-width': 1,
-      'circle-stroke-color': '#0a0c10'
+    if (map.getSource('check-cashing')) {
+      map.getSource('check-cashing').setData(data);
+      return;
     }
-  });
 
-  map.on('click', 'check-cashing-layer', (e) => {
-    const p = e.features[0].properties;
-    new mapboxgl.Popup({ closeButton: false })
-      .setLngLat(e.features[0].geometry.coordinates)
-      .setHTML(`
+    map.addSource('check-cashing', { type: 'geojson', data });
+
+    map.addLayer({
+      id: 'check-cashing-layer',
+      type: 'circle',
+      source: 'check-cashing',
+      layout: { visibility: 'none' },
+      paint: {
+        'circle-radius': 5,
+        'circle-color': '#fb923c',
+        'circle-opacity': 0.85,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': '#0a0c10'
+      }
+    });
+
+    map.on('click', 'check-cashing-layer', (e) => {
+      const p = e.features[0].properties;
+      new mapboxgl.Popup({ closeButton: false })
+        .setLngLat(e.features[0].geometry.coordinates)
+        .setHTML(`
         <div style="font-family:'DM Sans',sans-serif;padding:4px">
           <div style="font-family:'Space Mono',monospace;font-size:10px;color:#fb923c;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Check Cashing / Pawn</div>
           <div style="font-size:13px;font-weight:600;color:#e8eaed">${p.name}</div>
         </div>
       `)
-      .addTo(map);
-  });
-  map.on('mouseenter', 'check-cashing-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
-  map.on('mouseleave', 'check-cashing-layer', () => { map.getCanvas().style.cursor = ''; });
+        .addTo(map);
+    });
+    map.on('mouseenter', 'check-cashing-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'check-cashing-layer', () => { map.getCanvas().style.cursor = ''; });
+  } finally {
+    hideLayerLoading();
+  }
 }
 
 async function loadVacantLayer() {
   showLayerLoading('Vacant Properties');
-  const data = await fetchOverpassPOI(vacantQuery);
+  try {
+    const data = await fetchOverpassPOI(vacantQuery);
 
-  if (map.getSource('vacant-lots')) {
-    map.getSource('vacant-lots').setData(data);
-    return;
-  }
-
-  map.addSource('vacant-lots', { type: 'geojson', data });
-
-  map.addLayer({
-    id: 'vacant-lots-layer',
-    type: 'circle',
-    source: 'vacant-lots',
-    layout: { visibility: 'none' },
-    paint: {
-      'circle-radius': 6,
-      'circle-color': '#78716c',
-      'circle-opacity': 0.75,
-      'circle-stroke-width': 1,
-      'circle-stroke-color': '#0a0c10'
+    if (map.getSource('vacant-lots')) {
+      map.getSource('vacant-lots').setData(data);
+      return;
     }
-  });
 
-  map.on('click', 'vacant-lots-layer', (e) => {
-    const p = e.features[0].properties;
-    new mapboxgl.Popup({ closeButton: false })
-      .setLngLat(e.features[0].geometry.coordinates)
-      .setHTML(`
+    map.addSource('vacant-lots', { type: 'geojson', data });
+
+    map.addLayer({
+      id: 'vacant-lots-layer',
+      type: 'circle',
+      source: 'vacant-lots',
+      layout: { visibility: 'none' },
+      paint: {
+        'circle-radius': 6,
+        'circle-color': '#78716c',
+        'circle-opacity': 0.75,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': '#0a0c10'
+      }
+    });
+
+    map.on('click', 'vacant-lots-layer', (e) => {
+      const p = e.features[0].properties;
+      new mapboxgl.Popup({ closeButton: false })
+        .setLngLat(e.features[0].geometry.coordinates)
+        .setHTML(`
         <div style="font-family:'DM Sans',sans-serif;padding:4px">
           <div style="font-family:'Space Mono',monospace;font-size:10px;color:#78716c;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Vacant / Abandoned</div>
           <div style="font-size:13px;font-weight:600;color:#e8eaed">${p.name || 'Unnamed Property'}</div>
         </div>
       `)
-      .addTo(map);
-  });
-  map.on('mouseenter', 'vacant-lots-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
-  map.on('mouseleave', 'vacant-lots-layer', () => { map.getCanvas().style.cursor = ''; });
+        .addTo(map);
+    });
+    map.on('mouseenter', 'vacant-lots-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'vacant-lots-layer', () => { map.getCanvas().style.cursor = ''; });
+  } finally {
+    hideLayerLoading();
+  }
 }
 
 async function loadParksLayer() {
   showLayerLoading('Parks');
-  const data = await fetchOverpassPOI(parksQuery);
+  try {
+    const data = await fetchOverpassPOI(parksQuery);
 
-  if (map.getSource('parks')) {
-    map.getSource('parks').setData(data);
-    return;
-  }
-
-  map.addSource('parks', { type: 'geojson', data });
-
-  map.addLayer({
-    id: 'parks-layer',
-    type: 'circle',
-    source: 'parks',
-    layout: { visibility: 'none' },
-    paint: {
-      'circle-radius': 6,
-      'circle-color': '#22c55e',
-      'circle-opacity': 0.8,
-      'circle-stroke-width': 1,
-      'circle-stroke-color': '#0a0c10'
+    if (map.getSource('parks')) {
+      map.getSource('parks').setData(data);
+      return;
     }
-  });
 
-  map.on('click', 'parks-layer', (e) => {
-    const p = e.features[0].properties;
-    const typeLabel = p.leisure === 'playground' ? 'Playground' : p.leisure === 'sports_centre' ? 'Sports Center' : 'Park';
-    new mapboxgl.Popup({ closeButton: false })
-      .setLngLat(e.features[0].geometry.coordinates)
-      .setHTML(`
+    map.addSource('parks', { type: 'geojson', data });
+
+    map.addLayer({
+      id: 'parks-layer',
+      type: 'circle',
+      source: 'parks',
+      layout: { visibility: 'none' },
+      paint: {
+        'circle-radius': 6,
+        'circle-color': '#22c55e',
+        'circle-opacity': 0.8,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': '#0a0c10'
+      }
+    });
+
+    map.on('click', 'parks-layer', (e) => {
+      const p = e.features[0].properties;
+      const typeLabel = p.leisure === 'playground' ? 'Playground' : p.leisure === 'sports_centre' ? 'Sports Center' : 'Park';
+      new mapboxgl.Popup({ closeButton: false })
+        .setLngLat(e.features[0].geometry.coordinates)
+        .setHTML(`
         <div style="font-family:'DM Sans',sans-serif;padding:4px">
           <div style="font-family:'Space Mono',monospace;font-size:10px;color:#22c55e;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${typeLabel}</div>
           <div style="font-size:13px;font-weight:600;color:#e8eaed">${p.name || 'Unnamed'}</div>
         </div>
       `)
-      .addTo(map);
-  });
-  map.on('mouseenter', 'parks-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
-  map.on('mouseleave', 'parks-layer', () => { map.getCanvas().style.cursor = ''; });
+        .addTo(map);
+    });
+    map.on('mouseenter', 'parks-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'parks-layer', () => { map.getCanvas().style.cursor = ''; });
+  } finally {
+    hideLayerLoading();
+  }
 }
 
 // Official JCPD district boundaries (Jersey City Open Data)
