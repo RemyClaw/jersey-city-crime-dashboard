@@ -1578,9 +1578,9 @@ map.on('load',()=>{
   // District polygons (behind wards)
   map.addSource('districts',{type:'geojson',data:districtGeoJSON});
   map.addLayer({id:'districts-fill',type:'fill',source:'districts',
-    paint:{'fill-color':['get','color'],'fill-opacity':0.08,'fill-emissive-strength':1}});
+    paint:{'fill-color':['get','color'],'fill-opacity':0.25,'fill-emissive-strength':1}});
   map.addLayer({id:'districts-border',type:'line',source:'districts',
-    paint:{'line-color':['get','color'],'line-width':2.5,'line-opacity':0.7,'line-dasharray':[5,3],'line-emissive-strength':1}});
+    paint:{'line-color':['get','color'],'line-width':3,'line-opacity':1,'line-dasharray':[5,3],'line-emissive-strength':1}});
   map.addLayer({id:'district-labels',type:'symbol',source:'districts',
     layout:{'text-field':['get','name'],'text-font':['DIN Pro Italic','Arial Unicode MS Regular'],'text-size':11,'text-anchor':'center'},
     paint:{'text-color':['get','color'],'text-halo-color':'rgba(0,0,0,0.85)','text-halo-width':1.5,'text-opacity':0.9}});
