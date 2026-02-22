@@ -3,40 +3,153 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jersey City Crime Dashboard 2024</title>
+<title>BlockIQ JC — Jersey City Neighborhood Intelligence</title>
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.js"></script>
 <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css">
 <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   :root {
-    --bg:#0a0c10; --panel:#111318; --border:#1e2229;
-    --accent:#e63946; --blue:#457b9d;
-    --text:#e8eaed; --muted:#6b7280;
-    --trend-up:#e63946; --trend-down:#52b788; --trend-neutral:#e9c46a;
+    --bg: #06060e;
+    --panel: #0c0c1a;
+    --border: rgba(0,194,255,0.12);
+    --border-dim: #1e2235;
+    --accent: #00c2ff;
+    --accent-hover: #00ffe0;
+    --blue: #00c2ff;
+    --cyan: #00ffe0;
+    --text: #f0f4ff;
+    --muted: #8892a4;
+    --trend-up: #e63946;
+    --trend-down: #52b788;
+    --trend-neutral: #e9c46a;
+    --card-bg: rgba(255,255,255,0.03);
+    --glow: 0 0 30px rgba(0,194,255,0.15);
   }
-  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); display:flex; height:100vh; overflow:hidden; }
-  #sidebar { width:300px; min-width:300px; background:var(--panel); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow-y:auto; z-index:10; }
-  #header { padding:20px 20px 16px; border-bottom:1px solid var(--border); }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  #sidebar {
+    width: 300px;
+    min-width: 300px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: var(--bg); }
+  #sidebar::-webkit-scrollbar-thumb { background: rgba(0,194,255,0.3); border-radius: 2px; }
+  #header {
+    padding: 20px 20px 18px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(0,194,255,0.04) 0%, transparent 100%);
+  }
+  .biq-nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.7rem;
+    letter-spacing: 3px;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .biq-nav-logo span {
+    color: var(--accent);
+  }
+  .biq-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,194,255,0.08);
+    border: 1px solid rgba(0,194,255,0.18);
+    border-radius: 100px;
+    padding: 4px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .biq-dot {
+    width: 5px;
+    height: 5px;
+    background: var(--cyan);
+    border-radius: 50%;
+    animation: biqBlink 2s ease-in-out infinite;
+  }
+  @keyframes biqBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+  .biq-back-link {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-decoration: none;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.5px;
+    transition: color 0.2s;
+  }
+  .biq-back-link:hover {
+    color: var(--accent);
+  }
   .eyebrow { font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.15em; color:var(--accent); text-transform:uppercase; margin-bottom:6px; }
   h1 { font-size:18px; font-weight:600; line-height:1.2; }
   .subtitle { font-size:11px; color:var(--muted); margin-top:4px; font-family:'Space Mono',monospace; }
   .section { padding:16px 20px; border-bottom:1px solid var(--border); }
-  .section-label { font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; margin-bottom:12px; }
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 14px 20px 8px;
+    border-top: 1px solid var(--border-dim);
+    margin-top: 4px;
+  }
   .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .stat-card { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:12px; position:relative; overflow:hidden; }
+  .stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .stat-card:hover {
+    border-color: rgba(0,194,255,0.25);
+    box-shadow: var(--glow);
+  }
   .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
   .stat-card.red::before { background:#e63946; }
   .stat-card.yellow::before { background:#e9c46a; }
   .stat-card.blue::before { background:#457b9d; }
-  .stat-label { font-size:10px; color:var(--muted); margin-bottom:6px; font-family:'Space Mono',monospace; }
-  .stat-value { font-size:28px; font-weight:600; font-family:'Space Mono',monospace; line-height:1; }
-  .stat-card.red .stat-value { color:#e63946; }
-  .stat-card.yellow .stat-value { color:#e9c46a; }
-  .stat-card.blue .stat-value { color:#457b9d; }
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: 1px;
+    line-height: 1;
+    color: var(--text);
+  }
   .stat-sub { font-size:10px; color:#6b7280; margin-top:3px; font-family:'Space Mono',monospace; }
   .stat-change { font-size:10px; margin-top:4px; font-family:'Space Mono',monospace; }
   .sparkline{position:absolute;right:8px;bottom:8px;opacity:.9;pointer-events:none;}
@@ -155,9 +268,23 @@
     line-height:1.5;
   }
   details.collapse-panel{border:1px solid var(--border); border-radius:6px; background:var(--bg);}
-  details.collapse-panel summary{
-    list-style:none; cursor:pointer; padding:10px; font-size:12px; font-weight:500; user-select:none;
+  summary {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 10px 20px;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: color 0.2s;
+    user-select: none;
   }
+  summary:hover { color: var(--accent); }
+  details[open] > summary { color: var(--accent); }
   details.collapse-panel summary::-webkit-details-marker{display:none;}
   .sources-list{padding:0 10px 10px; display:flex; flex-direction:column; gap:8px;}
   .source-card{border:1px solid var(--border); border-radius:6px; padding:9px; background:#0d1015;}
@@ -185,21 +312,21 @@
   .toggle-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); }
   .toggle-row:last-child{border-bottom:none;}
   .section-category-label {
-    font-family:'Space Mono',monospace;
-    font-size:8px;
-    letter-spacing:.15em;
-    text-transform:uppercase;
-    color:#6b7280;
-    padding:12px 0 6px;
-    border-top:1px solid #1e2229;
-    margin-top:4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 14px 0 8px;
+    border-top: 1px solid var(--border-dim);
+    margin-top: 4px;
   }
   .section-category-label:first-of-type { border-top:none; padding-top:0; margin-top:0; }
-  .category-default{color:#6b7280;}
-  .category-crime{color:#e63946;}
-  .category-community{color:#4ade80;}
-  .category-poi{color:#a78bfa;}
-  .category-muted{color:#6b7280;}
+  .category-default{color:var(--accent);}
+  .category-crime{color:var(--accent);}
+  .category-community{color:var(--accent);}
+  .category-poi{color:var(--accent);}
+  .category-muted{color:var(--accent);}
   .toggle-label { font-size:12px; display:flex; align-items:center; gap:8px; }
   .toggle-swatch { width:14px; height:14px; border-radius:3px; }
   .safety-label{color:#4ade80;}
@@ -261,7 +388,7 @@
   .toggle input{opacity:0;width:0;height:0;}
   .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#2a2d35;border-radius:20px;transition:.3s;}
   .slider:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;}
-  input:checked+.slider{background:var(--blue);}
+  input:checked+.slider{background:var(--accent);}
   input:checked+.slider:before{transform:translateX(16px);}
   .data-note { padding:16px 20px; font-size:10px; color:var(--muted); line-height:1.6; font-family:'Space Mono',monospace; }
   #map { flex:1; position:relative; }
@@ -305,15 +432,60 @@
     background-color:#1e2229 !important;
     color:#e8eaed !important;
   }
+  .biq-ad-slot {
+    margin: 16px 12px;
+    padding: 16px;
+    background: rgba(0,194,255,0.04);
+    border: 1px dashed rgba(0,194,255,0.2);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .biq-ad-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .biq-ad-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    color: var(--text);
+  }
+  .biq-ad-sub {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-weight: 300;
+    line-height: 1.5;
+  }
+  .biq-ad-link {
+    font-size: 0.75rem;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    margin-top: 4px;
+    transition: color 0.2s;
+  }
+  .biq-ad-link:hover {
+    color: var(--cyan);
+  }
 </style>
 </head>
 <body>
 
 <div id="sidebar">
   <div id="header">
-    <div class="eyebrow">JCPD · NJ0090600</div>
-    <h1>Jersey City<br>Crime Dashboard</h1>
-    <div class="subtitle">2024 Snapshot · FBI UCR Data</div>
+    <div class="biq-nav-logo">BLOCK<span>IQ</span> JC</div>
+    <div class="biq-eyebrow">
+      <span class="biq-dot"></span>
+      NIBRS · Jan–Sep 2025 · Live
+    </div>
+    <div class="biq-back">
+      <a href="index.html" class="biq-back-link">← Back to Home</a>
+    </div>
   </div>
 
   <div class="section">
@@ -522,6 +694,13 @@
         </div>
       </div>
     </details>
+  </div>
+
+  <div class="biq-ad-slot">
+    <div class="biq-ad-label">Featured Agent</div>
+    <div class="biq-ad-name">Advertise Here</div>
+    <div class="biq-ad-sub">Reach JC home buyers · $100/mo</div>
+    <a href="index.html#advertise" class="biq-ad-link">Learn More →</a>
   </div>
 
   <div class="data-note">Source: FBI UCR 2024 · jerseycitynj.gov<br>Hover wards &amp; precincts for details<br>Click any item to zoom map</div>
