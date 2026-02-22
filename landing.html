@@ -424,7 +424,7 @@ const observer = new IntersectionObserver(entries => {
   entries.forEach(entry => {
     if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); }
   });
-}, { threshold: 0.1 });
+}, { threshold: 0.05, rootMargin: "0px 0px -50px 0px" });
 
 document.querySelectorAll('.feature-card').forEach((el, i) => { el.style.transitionDelay = `${i * 70}ms`; });
 document.querySelectorAll('.agent-card, .agent-slot').forEach((el, i) => { el.style.transitionDelay = `${i * 90}ms`; });
