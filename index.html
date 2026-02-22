@@ -279,7 +279,7 @@
     <div class="section-label">Map Layers</div>
     <div class="section-category-label category-default">Map Layers</div>
     <div class="toggle-row">
-      <div class="toggle-label"><div class="toggle-swatch" style="background:#e63946;opacity:.6;"></div>Ward Boundaries</div>
+      <div class="toggle-label"><div class="toggle-swatch" style="background:linear-gradient(90deg,#e63946,#f4a261);opacity:.75;"></div>Ward Boundaries + Density</div>
       <label class="toggle"><input type="checkbox" id="togWardBoundaries" onchange="toggleLayer('wardBoundaries')"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
@@ -295,10 +295,6 @@
       <label class="toggle"><input type="checkbox" id="togPathStations" onchange="toggleLayer('pathStations')"><span class="slider"></span></label>
     </div>
     <div class="section-category-label category-crime">Crime Data</div>
-    <div class="toggle-row">
-      <div class="toggle-label"><div class="toggle-swatch" style="background:#e63946;opacity:.55;"></div>Ward Crime Density</div>
-      <label class="toggle"><input type="checkbox" id="togWardDensity" onchange="toggleLayer('wardDensity')"><span class="slider"></span></label>
-    </div>
     <div class="toggle-row">
       <div class="toggle-label"><div class="toggle-swatch" style="background:linear-gradient(90deg,#4ade80,#facc15,#fb923c,#ef4444);"></div>Crime Heatmap</div>
       <label class="toggle"><input type="checkbox" id="togHeatmap" onchange="toggleLayer('crimeHeatmap')"><span class="slider"></span></label>
@@ -886,7 +882,6 @@ map.addControl(new mapboxgl.NavigationControl(),'top-right');
 
 const layerState = {
   wardBoundaries:false,
-  wardDensity:false,
   crimeHeatmap:false,
   districts:true,
   precincts:true,
@@ -1004,9 +999,8 @@ map.on('load',()=>{
   map.addLayer({id:'ward-labels',type:'symbol',source:'wards',
     layout:{'text-field':['concat','Ward ',['upcase',['get','ward']]],'text-font':['DIN Pro Bold','Arial Unicode MS Bold'],'text-size':13,'text-anchor':'center'},
     paint:{'text-color':'#ffffff','text-halo-color':'rgba(0,0,0,0.7)','text-halo-width':1.5}});
-  if(!layerState.wardDensity) map.setLayoutProperty('wards-fill','visibility','none');
   if(!layerState.wardBoundaries){
-    ['wards-border','ward-labels'].forEach(l=>map.setLayoutProperty(l,'visibility','none'));
+    ['wards-fill','wards-border','ward-labels'].forEach(l=>map.setLayoutProperty(l,'visibility','none'));
   }
 
   map.addSource('crime-heatmap',{ type:'geojson', data:heatmapPointsData });
@@ -1220,7 +1214,7 @@ function zoomToFeature(f){
 }
 
 const wardBoundaryLayers=['wards-border','ward-labels'];
-const wardDensityLayers=['wards-fill'];
+const wardFillLayers=['wards-fill'];
 const distLayers=['districts-fill','districts-border','district-labels'];
 const schoolLayers=['schools-points'];
 const libraryLayers=['libraries-points'];
@@ -1248,8 +1242,10 @@ async function toggleLayer(group){
     return;
   }
 
-  if(group==='wardBoundaries') wardBoundaryLayers.forEach(l=>map.setLayoutProperty(l,'visibility',vis));
-  if(group==='wardDensity') wardDensityLayers.forEach(l=>map.setLayoutProperty(l,'visibility',vis));
+  if(group==='wardBoundaries'){
+    wardFillLayers.forEach(l=>map.setLayoutProperty(l,'visibility',vis));
+    wardBoundaryLayers.forEach(l=>map.setLayoutProperty(l,'visibility',vis));
+  }
   if(group==='crimeHeatmap') heatmapLayers.forEach(l=>map.setLayoutProperty(l,'visibility',vis));
   if(group==='districts') distLayers.forEach(l=>map.setLayoutProperty(l,'visibility',vis));
   if(group==='precincts') allMarkers.forEach(m=>{ m.el.style.display=vis==='visible'?'flex':'none'; });
