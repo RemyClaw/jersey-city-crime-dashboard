@@ -881,6 +881,36 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function dedupeParkFeatures(features) {
+  const accepted = [];
+  const normalized = [];
+
+  (features || []).forEach((feature) => {
+    const coords = feature && feature.geometry && feature.geometry.coordinates;
+    if (!coords || coords.length < 2) return;
+    const lon = Number(coords[0]);
+    const lat = Number(coords[1]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+    const name = String((feature.properties && feature.properties.name) || '').trim().toLowerCase();
+
+    const duplicate = normalized.some((item) => {
+      const sameName = name && item.name && name === item.name;
+      const dist = haversineMeters(lat, lon, item.lat, item.lon);
+      if (sameName && dist < 200) return true;
+      if (dist < 25) return true;
+      return false;
+    });
+
+    if (!duplicate) {
+      accepted.push(feature);
+      normalized.push({ lat, lon, name });
+    }
+  });
+
+  return accepted;
+}
+
 async function fetchOverpassPOI(query) {
   const body = 'data=' + encodeURIComponent(query);
   const overpassEndpoints = [
@@ -1010,7 +1040,7 @@ async function loadParksLayer() {
   showLayerLoading('Parks');
   try {
     const data = await fetchOverpassPOI(parksQuery);
-    const overpassFeatures = (data && data.features) ? data.features : [];
+    const overpassFeatures = dedupeParkFeatures((data && data.features) ? data.features : []);
     const overpassPositions = overpassFeatures
       .map((feature) => {
         const coords = feature && feature.geometry && feature.geometry.coordinates;
