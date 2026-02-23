@@ -29,6 +29,12 @@
     --card-bg: rgba(255,255,255,0.03);
     --glow: 0 0 30px rgba(232,87,26,0.2);
   }
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
   body {
     font-family: 'DM Sans', sans-serif;
     background: var(--bg);
@@ -549,13 +555,16 @@
   }
   @media (max-width: 768px) {
     body {
+      position: relative;
+      height: 100dvh;
       display: block;
       overflow: hidden;
     }
     #map {
-      position: fixed;
-      inset: 0;
-      width: 100vw;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
       height: 100dvh;
       z-index: 1;
     }
@@ -564,15 +573,13 @@
     }
     .mobile-filter-pills {
       position: absolute;
-      top: 10px;
-      left: 0;
-      right: 0;
-      z-index: 101;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      z-index: 1000;
       display: flex;
       gap: 8px;
-      padding: 8px 16px;
-      overflow-x: auto;
-      scrollbar-width: none;
+      flex-wrap: wrap;
       pointer-events: auto;
     }
     .pill {
@@ -596,12 +603,12 @@
       bottom: 0;
       left: 0;
       right: 0;
-      z-index: 100;
-      background: #111;
+      background: rgba(8,8,8,0.95);
       border-radius: 16px 16px 0 0;
-      border-top: 1px solid rgba(232,87,26,0.3);
-      padding: 0 16px 32px;
+      z-index: 2000;
+      padding: 12px 20px;
       height: 35vh;
+      max-height: 75vh;
       overflow-y: auto;
       transition: height 0.3s ease;
       display: block;
@@ -614,7 +621,7 @@
       height: 4px;
       background: rgba(255,255,255,0.2);
       border-radius: 2px;
-      margin: 12px auto;
+      margin: 0 auto 12px;
       cursor: pointer;
     }
     .sidebar, #sidebar {
@@ -628,28 +635,76 @@
       font-size: 0.9rem;
       line-height: 1.5;
     }
+    .mobile-sheet-link {
+      display: inline-block;
+      margin-bottom: 10px;
+      color: #F2EDE4;
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+    .sheet-section-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #8A8278;
+      margin: 10px 0 8px;
+    }
+    .sheet-ward-grid,
+    .sheet-stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .sheet-pill {
+      border: 1px solid rgba(232,87,26,0.25);
+      background: rgba(232,87,26,0.08);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.8rem;
+      color: #F2EDE4;
+    }
+    .sheet-stat {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .sheet-stat-label {
+      font-size: 0.7rem;
+      color: #8A8278;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-family: 'Space Mono', monospace;
+    }
+    .sheet-stat-value {
+      font-size: 1.1rem;
+      color: #F2EDE4;
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 1px;
+      line-height: 1;
+      margin-top: 2px;
+    }
     #legend {
       display: none;
     }
     .mapboxgl-ctrl-geocoder {
-      min-width: 85% !important;
-      max-width: 85% !important;
-      width: 85% !important;
+      min-width: 100% !important;
+      max-width: 100% !important;
+      width: 100% !important;
     }
     .mapboxgl-ctrl-top-right {
       position: absolute !important;
-      top: 62px !important;
-      left: 50% !important;
-      right: auto !important;
-      transform: translateX(-50%);
-      width: 85%;
+      top: 60px !important;
+      left: 16px !important;
+      right: 16px !important;
+      transform: none;
+      width: auto;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: stretch;
       gap: 6px;
-      pointer-events: none;
-    }
-    .mapboxgl-ctrl-top-right .mapboxgl-ctrl {
+      z-index: 1000;
       pointer-events: auto;
     }
   }
@@ -2046,7 +2101,35 @@ async function toggleLayer(group){
 <div class="mobile-bottom-sheet" id="mobileSheet">
   <div class="sheet-handle"></div>
   <div class="sheet-content">
-    <!-- Move sidebar filters and stats here -->
+    <a class="mobile-sheet-link" href="index.html">← Back to Home</a>
+    <div class="sheet-section-title">Ward Safety Scores</div>
+    <div class="sheet-ward-grid">
+      <div class="sheet-pill">Ward A: 45</div>
+      <div class="sheet-pill">Ward B: 57</div>
+      <div class="sheet-pill">Ward C: 62</div>
+      <div class="sheet-pill">Ward D: 70</div>
+      <div class="sheet-pill">Ward E: 77</div>
+      <div class="sheet-pill">Ward F: 79</div>
+    </div>
+    <div class="sheet-section-title">Incident Stats (2025 YTD)</div>
+    <div class="sheet-stat-grid">
+      <div class="sheet-stat">
+        <div class="sheet-stat-label">Homicides</div>
+        <div class="sheet-stat-value">10</div>
+      </div>
+      <div class="sheet-stat">
+        <div class="sheet-stat-label">Shootings</div>
+        <div class="sheet-stat-value">31</div>
+      </div>
+      <div class="sheet-stat">
+        <div class="sheet-stat-label">Theft</div>
+        <div class="sheet-stat-value">3,019</div>
+      </div>
+      <div class="sheet-stat">
+        <div class="sheet-stat-label">Stolen Vehicles</div>
+        <div class="sheet-stat-value">648</div>
+      </div>
+    </div>
   </div>
 </div>
 </body>
