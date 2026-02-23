@@ -14,20 +14,20 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   :root {
     --bg: #06060e;
-    --panel: #0c0c1a;
-    --border: rgba(0,194,255,0.12);
+    --panel: #0d0d0d;
+    --border: rgba(232,87,26,0.15);
     --border-dim: #1e2235;
-    --accent: #00c2ff;
-    --accent-hover: #00ffe0;
-    --blue: #00c2ff;
-    --cyan: #00ffe0;
+    --accent: #E8571A;
+    --accent-hover: #F5A623;
+    --blue: #E8571A;
+    --cyan: #F5A623;
     --text: #f0f4ff;
     --muted: #8892a4;
     --trend-up: #e63946;
     --trend-down: #52b788;
     --trend-neutral: #e9c46a;
     --card-bg: rgba(255,255,255,0.03);
-    --glow: 0 0 30px rgba(0,194,255,0.15);
+    --glow: 0 0 30px rgba(232,87,26,0.2);
   }
   body {
     font-family: 'DM Sans', sans-serif;
@@ -49,11 +49,11 @@
   }
   #sidebar::-webkit-scrollbar { width: 4px; }
   #sidebar::-webkit-scrollbar-track { background: var(--bg); }
-  #sidebar::-webkit-scrollbar-thumb { background: rgba(0,194,255,0.3); border-radius: 2px; }
+  #sidebar::-webkit-scrollbar-thumb { background: rgba(232,87,26,0.35); border-radius: 2px; }
   #header {
     padding: 20px 20px 18px;
     border-bottom: 1px solid var(--border);
-    background: linear-gradient(180deg, rgba(0,194,255,0.04) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(232,87,26,0.06) 0%, transparent 100%);
   }
   .biq-nav-logo {
     font-family: 'Bebas Neue', sans-serif;
@@ -70,8 +70,8 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(0,194,255,0.08);
-    border: 1px solid rgba(0,194,255,0.18);
+    background: rgba(232,87,26,0.1);
+    border: 1px solid rgba(232,87,26,0.28);
     border-radius: 100px;
     padding: 4px 12px;
     font-family: 'DM Mono', monospace;
@@ -125,7 +125,7 @@
   }
   .consumer-guide {
     padding: 14px 16px;
-    background: rgba(0,194,255,0.04);
+    background: rgba(232,87,26,0.05);
     border-bottom: 1px solid var(--border);
   }
   .guide-step {
@@ -174,7 +174,7 @@
     transition: border-color 0.3s, box-shadow 0.3s;
   }
   .stat-card:hover {
-    border-color: rgba(0,194,255,0.25);
+    border-color: rgba(232,87,26,0.3);
     box-shadow: var(--glow);
   }
   .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
@@ -488,8 +488,9 @@
   .biq-ad-slot {
     margin: 16px 12px;
     padding: 16px;
-    background: rgba(0,194,255,0.04);
-    border: 1px dashed rgba(0,194,255,0.2);
+    background: rgba(232,87,26,0.05);
+    border: 1px dashed rgba(232,87,26,0.28);
+    border-left: 3px solid #E8571A;
     border-radius: 10px;
     display: flex;
     flex-direction: column;
@@ -585,7 +586,7 @@
       z-index: 40;
       min-height: 44px;
       padding: 8px 14px;
-      border: 1px solid rgba(0,194,255,0.28);
+      border: 1px solid rgba(232,87,26,0.28);
       border-radius: 999px;
       background: rgba(12,12,26,0.9);
       color: var(--text);
