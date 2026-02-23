@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BlockIQ JC — Jersey City's Free Crime & Neighborhood Dashboard</title>
+<meta name="description" content="Jersey City's free neighborhood intelligence dashboard. Crime data, safety scores, schools, parks, and transit for all 6 wards. No login required.">
+<meta name="keywords" content="Jersey City crime map, Jersey City neighborhood safety, JC crime data, Jersey City ward scores, JCPD crime statistics">
+<meta property="og:title" content="BlockIQ JC — Know Every Block">
+<meta property="og:description" content="Free crime and neighborhood data dashboard for Jersey City, NJ. Powered by official JCPD and government sources.">
+<meta property="og:url" content="https://blockiqjc.com">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="BlockIQ JC — Know Every Block">
+<meta name="twitter:description" content="Free Jersey City crime data, safety scores, parks, schools and transit. No login required.">
+<link rel="canonical" href="https://remymunoz.github.io/jersey-city-crime-dashboard/landing.html">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -336,22 +346,19 @@ h1 {
 .btn-primary:hover { background: var(--amber); color: #000; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(232,87,26,0.4); }
 
 .btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   background: transparent;
-  color: var(--white);
-  font-weight: 500;
-  font-size: 0.88rem;
-  padding: 15px 30px;
-  border-radius: 3px;
-  text-decoration: none;
-  border: 1px solid var(--gray-dim);
-  transition: all 0.3s;
-  font-family: 'DM Sans', sans-serif;
-  letter-spacing: 0.5px;
+  border: none;
+  color: var(--gray);
+  font-size: 0.85rem;
+  padding: 15px 16px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
-.btn-secondary:hover { border-color: var(--orange); color: var(--orange); }
+.btn-secondary:hover {
+  color: var(--white);
+  border: none;
+  background: transparent;
+}
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(28px); }
@@ -595,6 +602,11 @@ h1 {
   padding: 3px 10px;
   border-radius: 1px;
   width: fit-content;
+}
+/* Add this rule */
+.agent-badge.available {
+  background: rgba(138,130,120,0.1);
+  color: var(--gray);
 }
 .agent-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 1px; line-height: 1.1; }
 .agent-brokerage { font-size: 0.78rem; color: var(--gray); font-weight: 300; }
@@ -934,7 +946,7 @@ footer {
   <div class="hero-content">
     <div class="hero-eyebrow">
       <span class="eyebrow-line"></span>
-      Jersey City · Free · Always Updated
+      Jersey City · Free · Updated Quarterly
       <span class="eyebrow-line"></span>
     </div>
     <h1>
@@ -995,7 +1007,13 @@ footer {
 
 <!-- AD SLOT -->
 <div style="padding: 28px 48px; background: var(--bg); display: flex; justify-content: center;">
-  <div class="ad-slot ad-leaderboard">Advertisement</div>
+  <a href="#advertise" style="display:flex; align-items:center; justify-content:space-between; width:100%; max-width:728px; height:90px; background:rgba(232,87,26,0.06); border:1px solid rgba(232,87,26,0.2); border-radius:2px; padding: 0 32px; text-decoration:none;">
+    <div>
+      <div style="font-family:'Bebas Neue',sans-serif; font-size:1.4rem; color:#F2EDE4; letter-spacing:2px;">ADVERTISE YOUR LISTINGS HERE</div>
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:0.65rem; color:#E8571A; letter-spacing:2px; margin-top:4px;">REACH JERSEY CITY HOME BUYERS · STARTING AT $50/MO</div>
+    </div>
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:0.75rem; color:#E8571A; letter-spacing:1px; border:1px solid rgba(232,87,26,0.4); padding:8px 16px; border-radius:2px;">GET STARTED →</div>
+  </a>
 </div>
 
 <!-- NEIGHBORHOOD BANNER -->
@@ -1019,37 +1037,37 @@ footer {
   <div class="features-grid">
     <div class="feature-card">
       <div class="feature-num">01</div>
-      <img class="feature-img" src="https://images.unsplash.com/photo-1586449480537-3a22cf98b04c?q=80&w=3270&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Crime map">
+      <img class="feature-img" loading="lazy" src="https://images.unsplash.com/photo-1586449480537-3a22cf98b04c?q=80&w=3270&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Crime map">
       <h3>Interactive Crime Map</h3>
       <p>Visualize crime heatmaps, police districts, and ward boundaries. Powered by 2025 JCPD NIBRS data updated quarterly.</p>
     </div>
     <div class="feature-card">
       <div class="feature-num">02</div>
-      <img class="feature-img" src="https://images.unsplash.com/photo-1608095476825-d4e0f916372f?q=80&w=3270&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Jersey City neighborhood">
+      <img class="feature-img" loading="lazy" src="https://images.unsplash.com/photo-1608095476825-d4e0f916372f?q=80&w=3270&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Jersey City neighborhood">
       <h3>Neighborhood Safety Scores</h3>
       <p>Every ward scored 0–100 based on verified crime data. See which neighborhoods are improving and how yours compares.</p>
     </div>
     <div class="feature-card">
       <div class="feature-num">03</div>
-      <img class="feature-img" src="https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=3273&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="School">
+      <img class="feature-img" loading="lazy" src="https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=3273&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="School">
       <h3>Schools & Daycares</h3>
       <p>Every public school, private school, and daycare plotted on the map. Know what's near any address before you move.</p>
     </div>
     <div class="feature-card">
       <div class="feature-num">04</div>
-      <img class="feature-img" src="https://plus.unsplash.com/premium_photo-1681558921634-f73645bde42f?q=80&w=3770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Park">
+      <img class="feature-img" loading="lazy" src="https://plus.unsplash.com/premium_photo-1681558921634-f73645bde42f?q=80&w=3770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Park">
       <h3>Parks & Green Space</h3>
       <p>All 86 verified Jersey City parks mapped — from Lincoln Park to your neighborhood playground.</p>
     </div>
     <div class="feature-card">
       <div class="feature-num">05</div>
-      <img class="feature-img" src="https://images.unsplash.com/photo-1614582222696-8027eeaa31e1?q=80&w=1587&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Subway transit">
+      <img class="feature-img" loading="lazy" src="https://images.unsplash.com/photo-1614582222696-8027eeaa31e1?q=80&w=1587&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Subway transit">
       <h3>PATH Stations & Transit</h3>
       <p>All four JC PATH stations mapped with service info. See transit access for any neighborhood instantly.</p>
     </div>
     <div class="feature-card">
       <div class="feature-num">06</div>
-      <img class="feature-img" src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&q=80" alt="Data charts">
+      <img class="feature-img" loading="lazy" src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&q=80" alt="Data charts">
       <h3>Crime Trend Charts</h3>
       <p>Monthly crime trends across 9 offense categories. Understand if a neighborhood is getting safer or not.</p>
     </div>
@@ -1064,14 +1082,14 @@ footer {
     <p class="section-sub reveal">These Jersey City real estate professionals advertise here to connect with buyers and renters researching JC neighborhoods.</p>
     <div class="agents-grid">
       <div class="agent-card">
-        <span class="agent-badge">Featured Agent</span>
+        <span class="agent-badge available">Spot Available</span>
         <div class="agent-name">Your Name Here</div>
         <div class="agent-brokerage">Brokerage Name · Jersey City, NJ</div>
         <div class="agent-specialty">Specializing in Downtown JC, The Heights, Journal Square</div>
         <a href="#contact" class="agent-contact">📞 Get In Touch →</a>
       </div>
       <div class="agent-card">
-        <span class="agent-badge">Featured Agent</span>
+        <span class="agent-badge available">Spot Available</span>
         <div class="agent-name">Your Name Here</div>
         <div class="agent-brokerage">Brokerage Name · Jersey City, NJ</div>
         <div class="agent-specialty">Specializing in Greenville, Bergen-Lafayette, West Side</div>
@@ -1080,7 +1098,7 @@ footer {
       <a href="#advertise" class="agent-slot">
         <span class="agent-slot-icon">➕</span>
         <span class="agent-slot-title">Your Spot Here</span>
-        <p class="agent-slot-sub">Reach every JC home buyer and renter visiting this site. Starting at $100/mo.</p>
+        <p class="agent-slot-sub">Reach every JC home buyer and renter visiting this site. Starting at $50/mo.</p>
       </a>
     </div>
   </div>
@@ -1095,7 +1113,7 @@ footer {
     <div class="advertise-card">
       <div class="ad-plan-label">// Starter</div>
       <h3>Agent Spotlight</h3>
-      <div class="ad-price">$100 <span>/ month</span></div>
+      <div class="ad-price">$50 <span>/ month</span></div>
       <p>Your name, brokerage, specialty, and contact info featured in the Local Agents section.</p>
       <ul>
         <li>Featured agent card on this page</li>
@@ -1108,7 +1126,7 @@ footer {
     <div class="advertise-card">
       <div class="ad-plan-label">// Premium</div>
       <h3>Banner Advertising</h3>
-      <div class="ad-price">$200 <span>/ month</span></div>
+      <div class="ad-price">$100 <span>/ month</span></div>
       <p>Display banner ads on the landing page and dashboard — reaching users during active research.</p>
       <ul>
         <li>728×90 leaderboard ad on this page</li>
@@ -1147,8 +1165,8 @@ footer {
       <h3>LET'S TALK ABOUT GETTING YOUR NAME IN FRONT OF JC HOME BUYERS.</h3>
       <p>Whether you're a real estate agent looking to advertise, a local business with questions, or a JC resident with feedback — send us a message and we'll get back to you quickly.</p>
       <ul class="contact-perks">
-        <li><span class="perk-line"></span>Agent spotlight spots available now — $100/mo</li>
-        <li><span class="perk-line"></span>Banner ads on dashboard & landing page — $200/mo</li>
+        <li><span class="perk-line"></span>Agent spotlight spots available now — $50/mo</li>
+        <li><span class="perk-line"></span>Banner ads on dashboard & landing page — $100/mo</li>
         <li><span class="perk-line"></span>Month-to-month, no long-term contracts</li>
         <li><span class="perk-line"></span>The dashboard is always free for the public</li>
         <li><span class="perk-line"></span>Built by a Jersey City resident</li>
@@ -1163,8 +1181,8 @@ footer {
           <label>I'm interested in...</label>
           <select id="finterest">
             <option value="">Select one</option>
-            <option>Agent Spotlight ($100/mo)</option>
-            <option>Banner Advertising ($200/mo)</option>
+            <option>Agent Spotlight ($50/mo)</option>
+            <option>Banner Advertising ($100/mo)</option>
             <option>General Feedback</option>
             <option>Something Else</option>
           </select>
