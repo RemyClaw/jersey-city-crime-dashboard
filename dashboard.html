@@ -5,6 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BlockIQ JC — Jersey City Neighborhood Intelligence</title>
 <link rel="canonical" href="https://blockiqjc.com/dashboard.html">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "BlockIQ JC",
+  "url": "https://blockiqjc.com",
+  "description": "Jersey City's free neighborhood intelligence dashboard — crime data, safety scores, schools, parks, and transit for all 6 wards.",
+  "applicationCategory": "PublicSafety",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "author": {
+    "@type": "Person",
+    "name": "A Jersey City Resident"
+  }
+}
+</script>
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.js"></script>
 <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css">
@@ -73,6 +93,16 @@
   }
   .biq-nav-logo span {
     color: var(--accent);
+  }
+  .biq-main-h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 1.4px;
+    line-height: 1.1;
+    color: var(--text);
+    border-left: 2px solid var(--accent);
+    padding-left: 8px;
+    margin: 0 0 10px;
   }
   .biq-eyebrow {
     display: inline-flex;
@@ -358,6 +388,7 @@
   .ward-list,.precinct-list { display:flex; flex-direction:column; gap:8px; }
   .ward-item { display:flex; align-items:flex-start; gap:10px; padding:8px 10px; background:var(--bg); border:1px solid var(--border); border-radius:5px; cursor:pointer; transition:border-color .2s; }
   .ward-item:hover { border-color:var(--blue); }
+  .ward-item.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(232,87,26,0.35) inset; }
   .ward-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
   .ward-content{flex:1;}
   .ward-name { font-size:12px; font-weight:500; }
@@ -1189,6 +1220,7 @@
 <div id="sidebar">
   <div id="header">
     <div class="biq-nav-logo">BLOCK<span>IQ</span> JC</div>
+    <h1 class="biq-main-h1">Jersey City Crime &amp; Neighborhood Dashboard</h1>
     <div class="biq-eyebrow">
       <span class="biq-dot"></span>
       NIBRS · Jan–Sep 2025 · Live
@@ -2246,6 +2278,35 @@ const districtScoreData = {
   east: { score:67, mix:'Ward E 34.2% · Ward A 25.9% · Ward F 25.6% · Wards B/C/D 14.3%', method:'Area-weighted ward overlap', coverage:'East District model' },
   west: { score:63, mix:'Ward B 44.0% · Ward C 43.7% · Ward F 10.7% · Ward D 1.5%', method:'Area-weighted ward overlap', coverage:'West District model' }
 };
+const WARD_HASH_REGEX = /^#ward-([a-f])$/i;
+let mapHasLoaded = false;
+let pendingWardHashId = null;
+
+function getWardIdFromHash(hash){
+  const match = String(hash || '').trim().match(WARD_HASH_REGEX);
+  return match ? match[1].toUpperCase() : null;
+}
+
+function setActiveWardListItem(wardId){
+  document.querySelectorAll('.ward-item[data-ward]').forEach((item)=>{
+    item.classList.toggle('is-active', !!wardId && item.dataset.ward === wardId);
+  });
+}
+
+function activateWardFromHash(hash = window.location.hash){
+  const wardId = getWardIdFromHash(hash);
+  if(!wardId) return false;
+  if(!mapHasLoaded){
+    pendingWardHashId = wardId;
+    return false;
+  }
+  const wardCard = document.querySelector(`.ward-item[data-ward="${wardId}"]`);
+  if(!wardCard) return false;
+  wardCard.click();
+  return true;
+}
+
+pendingWardHashId = getWardIdFromHash(window.location.hash);
 
 function clearWardSelectionVisuals() {
   if (map.getLayer('ward-selected-outline')) {
@@ -2258,6 +2319,7 @@ function clearWardSelectionVisuals() {
 
 function hideWardInfoPanel() {
   selectedFeatureKey = null;
+  setActiveWardListItem(null);
   clearWardSelectionVisuals();
   if (wardInfoPanelEl) wardInfoPanelEl.classList.remove('is-visible');
 }
@@ -2293,6 +2355,7 @@ function setSelectedWard(wardId, councilName) {
     return;
   }
   selectedFeatureKey = key;
+  setActiveWardListItem(wardId);
   if (map.getLayer('ward-selected-outline')) {
     map.setFilter('ward-selected-outline', ['==', ['upcase', ['get', 'ward']], wardId]);
   }
@@ -2332,6 +2395,7 @@ function setSelectedDistrict(districtId, districtName, districtColor){
     return;
   }
   selectedFeatureKey = key;
+  setActiveWardListItem(null);
   if (map.getLayer('district-selected-outline')) {
     map.setFilter('district-selected-outline', ['==', ['get', 'id'], districtId]);
   }
@@ -2399,6 +2463,10 @@ if (wardInfoCloseEl) {
   wardInfoCloseEl.addEventListener('click', hideWardInfoPanel);
 }
 
+window.addEventListener('hashchange', () => {
+  activateWardFromHash(window.location.hash);
+});
+
 /* ── SIDEBAR: WARDS ── */
 const wardList = document.getElementById('wardList');
 [...wardsGeoJSON.features].sort((a,b)=>a.properties.ward.localeCompare(b.properties.ward)).forEach(f=>{
@@ -2413,6 +2481,7 @@ const wardList = document.getElementById('wardList');
   const tierColor = safeColor(tier.color, '#6b7280');
   const tierLabel = escapeHTML(tier.label.toUpperCase());
   const el=document.createElement('div'); el.className='ward-item';
+  el.dataset.ward = w;
   el.innerHTML=`
     <div class="ward-dot" style="background:${dotColor}"></div>
     <div class="ward-content">
@@ -2464,6 +2533,7 @@ precincts.forEach(p=>{
 map.on('load',()=>{
   map.setConfigProperty('basemap', 'lightPreset', 'night');
   map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
+  mapHasLoaded = true;
 
   // District polygons (behind wards)
   map.addSource('districts',{type:'geojson',data:districtGeoJSON});
@@ -2759,6 +2829,11 @@ map.on('load',()=>{
     countries: 'us'
   });
   map.addControl(geocoder, 'top-right');
+
+  if (pendingWardHashId) {
+    activateWardFromHash(`#ward-${pendingWardHashId.toLowerCase()}`);
+    pendingWardHashId = null;
+  }
 });
 
 function zoomToFeature(f){
