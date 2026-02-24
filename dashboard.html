@@ -1775,9 +1775,10 @@ const hospitalsQuery = `
   nwr["amenity"="hospital"];
   nwr["healthcare"="hospital"];
   nwr["healthcare"="clinic"]["healthcare:speciality"~"urgent_care|emergency",i];
-  nwr["amenity"="clinic"]["name"~"urgent care|immediate care|emergency|er",i];
-  nwr["healthcare"="centre"]["name"~"urgent care|immediate care|emergency|er",i];
-  nwr["healthcare"="doctor"]["name"~"urgent care|immediate care|emergency|er",i];
+  nwr["amenity"="clinic"]["name"~"urgent care|immediate care|walk-in|walk in|citymd|prompt[- ]?md|medrite|carepoint|afc|american family care|emergency",i];
+  nwr["healthcare"="clinic"]["name"~"urgent care|immediate care|walk-in|walk in|citymd|prompt[- ]?md|medrite|carepoint|afc|american family care|emergency",i];
+  nwr["healthcare"="centre"]["name"~"urgent care|immediate care|walk-in|walk in|citymd|prompt[- ]?md|medrite|carepoint|afc|american family care|emergency",i];
+  nwr["healthcare"="doctor"]["name"~"urgent care|immediate care|walk-in|walk in|citymd|prompt[- ]?md|medrite|carepoint|afc|american family care|emergency",i];
 );
 out center;
 `;
@@ -1829,6 +1830,16 @@ const supplementalParks = [
   { name: "Roberto Clemente LL", lat: 40.72555083321334, lon: -74.04150100619441 },
   { name: "Exchange Place Waterfront", lat: 40.71605296982352, lon: -74.03114790168574 },
   { name: "Terrace Avenue / Edward Crincoli Park", lat: 40.75247595821529, lon: -74.05654425175157 }
+];
+
+// Verified urgent-care supplements to avoid undercount from incomplete OSM tagging.
+// Source: provider location pages + Nominatim geocoding (captured Feb 24, 2026).
+const supplementalHealthcareSites = [
+  { name: "CityMD Urgent Care - Journal Square", lat: 40.7306669, lon: -74.0641266, type: "Urgent Care", source: "Supplemental: CityMD" },
+  { name: "CityMD Urgent Care - Jersey City", lat: 40.7204640, lon: -74.0427107, type: "Urgent Care", source: "Supplemental: CityMD" },
+  { name: "Prompt-MD Urgent Care Center Of Jersey City", lat: 40.7148030, lon: -74.0437668, type: "Urgent Care", source: "Supplemental: PromptMD" },
+  { name: "Englewood Health Urgent Care - Journal Square", lat: 40.7334683, lon: -74.0635502, type: "Urgent Care", source: "Supplemental: Englewood Health" },
+  { name: "Concentra Urgent Care", lat: 40.7336591, lon: -74.0591242, type: "Urgent Care", source: "Supplemental: Concentra" }
 ];
 
 function haversineMeters(lat1, lon1, lat2, lon2) {
@@ -1885,7 +1896,7 @@ function dedupeHealthcareFeatures(features) {
     const duplicate = normalized.some((item) => {
       const sameName = name && item.name && name === item.name;
       const dist = haversineMeters(lat, lon, item.lat, item.lon);
-      if (sameName && dist < 175) return true;
+      if (sameName && dist < 500) return true;
       if (dist < 40) return true;
       return false;
     });
@@ -2031,10 +2042,34 @@ async function loadHospitalsLayer() {
   showLayerLoading('Hospitals & Urgent Care');
   try {
     const data = await fetchOverpassPOI(hospitalsQuery);
-    const dedupedFeatures = dedupeHealthcareFeatures((data && data.features) ? data.features : []);
+    const overpassFeatures = dedupeHealthcareFeatures((data && data.features) ? data.features : []);
+    const overpassPositions = overpassFeatures
+      .map((feature) => {
+        const coords = feature && feature.geometry && feature.geometry.coordinates;
+        if (!coords || coords.length < 2) return null;
+        return { lat: Number(coords[1]), lon: Number(coords[0]) };
+      })
+      .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lon));
+
+    const supplementalFeatures = supplementalHealthcareSites
+      .filter((site) => {
+        if (!isInsideJerseyCity(site.lon, site.lat)) return false;
+        return !overpassPositions.some((op) => haversineMeters(site.lat, site.lon, op.lat, op.lon) < 120);
+      })
+      .map((site) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [site.lon, site.lat] },
+        properties: {
+          name: site.name,
+          type: site.type,
+          source: site.source
+        }
+      }));
+
+    const mergedFeatures = dedupeHealthcareFeatures([...overpassFeatures, ...supplementalFeatures]);
     const normalizedData = {
       type: 'FeatureCollection',
-      features: dedupedFeatures
+      features: mergedFeatures
     };
 
     if (map.getSource('hospitals-urgent-care')) {
@@ -2062,8 +2097,10 @@ async function loadHospitalsLayer() {
       const p = e.features[0].properties || {};
       const amenity = String(p.amenity || '').toLowerCase();
       const healthcare = String(p.healthcare || '').toLowerCase();
+      const type = String(p.type || '').toLowerCase();
       const safeName = escapeHTML(p.name || 'Unnamed');
-      const typeLabel = amenity === 'hospital' || healthcare === 'hospital' ? 'Hospital' : 'Urgent Care';
+      const safeSource = escapeHTML(p.source || '');
+      const typeLabel = (amenity === 'hospital' || healthcare === 'hospital' || type === 'hospital') ? 'Hospital' : 'Urgent Care';
       const safeTypeLabel = escapeHTML(typeLabel);
       new mapboxgl.Popup({ closeButton: false })
         .setLngLat(e.features[0].geometry.coordinates)
@@ -2071,6 +2108,7 @@ async function loadHospitalsLayer() {
         <div style="font-family:'DM Sans',sans-serif;padding:4px">
           <div style="font-family:'Space Mono',monospace;font-size:10px;color:#ef4444;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${safeTypeLabel}</div>
           <div style="font-size:13px;font-weight:600;color:#e8eaed">${safeName}</div>
+          ${p.source ? `<div style="font-size:10px;color:#6b7280;margin-top:4px;font-family:'Space Mono',monospace;">Source: ${safeSource}</div>` : ''}
         </div>
       `)
         .addTo(map);
