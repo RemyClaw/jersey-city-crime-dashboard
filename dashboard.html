@@ -508,6 +508,9 @@
     font-family:'Space Mono',monospace;
     color: #e8eaed;
     font-weight: 700;
+    text-align: right;
+    max-width: 65%;
+    line-height: 1.35;
   }
   .mapboxgl-popup-content{background:#111318!important;border:1px solid #1e2229!important;border-radius:8px!important;padding:14px 16px!important;color:#e8eaed!important;font-family:'DM Sans',sans-serif!important;box-shadow:0 8px 32px rgba(0,0,0,.5)!important;min-width:220px;}
   .mapboxgl-popup-tip{display:none!important;}
@@ -1446,10 +1449,10 @@
   <div id="ward-info-panel" aria-live="polite">
     <button type="button" class="ward-info-close" id="ward-info-close" aria-label="Close ward details">×</button>
     <div class="ward-info-title" id="ward-info-title"></div>
-    <div class="ward-info-row"><span>Safety Score</span><strong id="ward-info-score"></strong></div>
-    <div class="ward-info-row"><span>2024 Incidents</span><strong id="ward-info-incidents"></strong></div>
-    <div class="ward-info-row"><span>Top Crime</span><strong id="ward-info-topcrime"></strong></div>
-    <div class="ward-info-row"><span>Council</span><strong id="ward-info-council"></strong></div>
+    <div class="ward-info-row"><span id="ward-info-label-1">Safety Score</span><strong id="ward-info-score"></strong></div>
+    <div class="ward-info-row"><span id="ward-info-label-2">2024 Incidents</span><strong id="ward-info-incidents"></strong></div>
+    <div class="ward-info-row"><span id="ward-info-label-3">Top Crime</span><strong id="ward-info-topcrime"></strong></div>
+    <div class="ward-info-row"><span id="ward-info-label-4">Council</span><strong id="ward-info-council"></strong></div>
   </div>
   <div id="legend">
     <div class="legend-section">
@@ -2183,6 +2186,30 @@ function getWardFeatureAtLngLat(lng, lat) {
   return null;
 }
 
+function getDistrictFeatureAtLngLat(lng, lat) {
+  if (!Number.isFinite(lng) || !Number.isFinite(lat) || !districtGeoJSON || !districtGeoJSON.features) return null;
+
+  function pointInPolygonRings(rings) {
+    if (!rings || !rings.length) return false;
+    if (!isPointInRing(lng, lat, rings[0])) return false;
+    for (let i = 1; i < rings.length; i += 1) {
+      if (isPointInRing(lng, lat, rings[i])) return false;
+    }
+    return true;
+  }
+
+  for (const feature of districtGeoJSON.features) {
+    const geom = feature && feature.geometry;
+    if (!geom) continue;
+    if (geom.type === 'Polygon' && pointInPolygonRings(geom.coordinates || [])) return feature;
+    if (geom.type === 'MultiPolygon') {
+      const matched = (geom.coordinates || []).some((poly) => pointInPolygonRings(poly || []));
+      if (matched) return feature;
+    }
+  }
+  return null;
+}
+
 /* ── MAP INIT ── */
 const map = new mapboxgl.Map({
   container:'map', style:'mapbox://styles/mapbox/standard',
@@ -2203,23 +2230,36 @@ const layerState = {
   poiParks:false
 };
 const allMarkers = [];
-let selectedWardId = null;
+let selectedFeatureKey = null;
 const wardInfoPanelEl = document.getElementById('ward-info-panel');
 const wardInfoTitleEl = document.getElementById('ward-info-title');
+const wardInfoLabel1El = document.getElementById('ward-info-label-1');
+const wardInfoLabel2El = document.getElementById('ward-info-label-2');
+const wardInfoLabel3El = document.getElementById('ward-info-label-3');
+const wardInfoLabel4El = document.getElementById('ward-info-label-4');
 const wardInfoScoreEl = document.getElementById('ward-info-score');
 const wardInfoIncidentsEl = document.getElementById('ward-info-incidents');
 const wardInfoTopCrimeEl = document.getElementById('ward-info-topcrime');
 const wardInfoCouncilEl = document.getElementById('ward-info-council');
 const wardInfoCloseEl = document.getElementById('ward-info-close');
+const districtScoreData = {
+  north: { score:68, mix:'Ward D 86.1% · Ward C 13.6%', method:'Area-weighted ward overlap', coverage:'North District model' },
+  south: { score:49, mix:'Ward A 81.4% · Ward B 9.7% · Ward F 8.9%', method:'Area-weighted ward overlap', coverage:'South District model' },
+  east: { score:67, mix:'Ward E 34.2% · Ward A 25.9% · Ward F 25.6% · Wards B/C/D 14.3%', method:'Area-weighted ward overlap', coverage:'East District model' },
+  west: { score:63, mix:'Ward B 44.0% · Ward C 43.7% · Ward F 10.7% · Ward D 1.5%', method:'Area-weighted ward overlap', coverage:'West District model' }
+};
 
 function clearWardSelectionVisuals() {
   if (map.getLayer('ward-selected-outline')) {
     map.setFilter('ward-selected-outline', ['==', ['upcase', ['get', 'ward']], '__NONE__']);
   }
+  if (map.getLayer('district-selected-outline')) {
+    map.setFilter('district-selected-outline', ['==', ['get', 'id'], '__NONE__']);
+  }
 }
 
 function hideWardInfoPanel() {
-  selectedWardId = null;
+  selectedFeatureKey = null;
   clearWardSelectionVisuals();
   if (wardInfoPanelEl) wardInfoPanelEl.classList.remove('is-visible');
 }
@@ -2229,6 +2269,10 @@ function showWardInfoPanel(wardId, councilName) {
   if (!details || !wardInfoPanelEl) return;
   const score = details.safetyScore || calculateSafetyScore(details);
   const tier = getSafetyTier(score);
+  if (wardInfoLabel1El) wardInfoLabel1El.textContent = 'Safety Score';
+  if (wardInfoLabel2El) wardInfoLabel2El.textContent = '2024 Incidents';
+  if (wardInfoLabel3El) wardInfoLabel3El.textContent = 'Top Crime';
+  if (wardInfoLabel4El) wardInfoLabel4El.textContent = 'Council';
   if (wardInfoTitleEl) wardInfoTitleEl.textContent = `Ward ${wardId} — ${details.description}`;
   if (wardInfoScoreEl) {
     wardInfoScoreEl.textContent = `${score} ${tier.label}`;
@@ -2245,15 +2289,58 @@ function setSelectedWard(wardId, councilName) {
     hideWardInfoPanel();
     return;
   }
-  if (selectedWardId === wardId) {
+  const key = `ward:${wardId}`;
+  if (selectedFeatureKey === key) {
     hideWardInfoPanel();
     return;
   }
-  selectedWardId = wardId;
+  selectedFeatureKey = key;
   if (map.getLayer('ward-selected-outline')) {
     map.setFilter('ward-selected-outline', ['==', ['upcase', ['get', 'ward']], wardId]);
   }
+  if (map.getLayer('district-selected-outline')) {
+    map.setFilter('district-selected-outline', ['==', ['get', 'id'], '__NONE__']);
+  }
   showWardInfoPanel(wardId, councilName);
+}
+
+function showDistrictInfoPanel(districtId, districtName, districtColor){
+  const details = districtScoreData[districtId];
+  if (!details || !wardInfoPanelEl) return;
+  const tier = getSafetyTier(details.score);
+  if (wardInfoLabel1El) wardInfoLabel1El.textContent = 'Safety Score';
+  if (wardInfoLabel2El) wardInfoLabel2El.textContent = 'Ward Mix';
+  if (wardInfoLabel3El) wardInfoLabel3El.textContent = 'Method';
+  if (wardInfoLabel4El) wardInfoLabel4El.textContent = 'Coverage';
+  if (wardInfoTitleEl) wardInfoTitleEl.textContent = districtName || `${districtId} District`;
+  if (wardInfoScoreEl) {
+    wardInfoScoreEl.textContent = `${details.score} ${tier.label}`;
+    wardInfoScoreEl.style.color = safeColor(districtColor || tier.color, '#e8eaed');
+  }
+  if (wardInfoIncidentsEl) wardInfoIncidentsEl.textContent = details.mix;
+  if (wardInfoTopCrimeEl) wardInfoTopCrimeEl.textContent = details.method;
+  if (wardInfoCouncilEl) wardInfoCouncilEl.textContent = details.coverage;
+  wardInfoPanelEl.classList.add('is-visible');
+}
+
+function setSelectedDistrict(districtId, districtName, districtColor){
+  if (!districtId) {
+    hideWardInfoPanel();
+    return;
+  }
+  const key = `district:${districtId}`;
+  if (selectedFeatureKey === key) {
+    hideWardInfoPanel();
+    return;
+  }
+  selectedFeatureKey = key;
+  if (map.getLayer('district-selected-outline')) {
+    map.setFilter('district-selected-outline', ['==', ['get', 'id'], districtId]);
+  }
+  if (map.getLayer('ward-selected-outline')) {
+    map.setFilter('ward-selected-outline', ['==', ['upcase', ['get', 'ward']], '__NONE__']);
+  }
+  showDistrictInfoPanel(districtId, districtName, districtColor);
 }
 
 function updateCommunityLegend(){
@@ -2386,6 +2473,9 @@ map.on('load',()=>{
     paint:{'fill-color':['coalesce',['get','color'],'#ffffff'],'fill-opacity':0.25,'fill-emissive-strength':1}});
   map.addLayer({id:'districts-border',type:'line',source:'districts',
     paint:{'line-color':['coalesce',['get','color'],'#ffffff'],'line-width':3,'line-opacity':1,'line-dasharray':[5,3],'line-emissive-strength':1}});
+  map.addLayer({id:'district-selected-outline',type:'line',source:'districts',
+    filter:['==',['get','id'],'__NONE__'],
+    paint:{'line-color':['coalesce',['get','color'],'#ffffff'],'line-width':5,'line-opacity':1,'line-emissive-strength':1}});
   map.addLayer({id:'district-labels',type:'symbol',source:'districts',
     layout:{'text-field':['get','name'],'text-font':['DIN Pro Italic','Arial Unicode MS Regular'],'text-size':11,'text-anchor':'center'},
     paint:{'text-color':['coalesce',['get','color'],'#ffffff'],'text-halo-color':'rgba(0,0,0,0.85)','text-halo-width':1.5,'text-opacity':0.9}});
@@ -2556,17 +2646,35 @@ map.on('load',()=>{
   });
   map.on('mouseleave','wards-fill',()=>{ map.getCanvas().style.cursor=''; wardPopup.remove(); });
   map.on('click',(e)=>{
-    const wardFeature = getWardFeatureAtLngLat(e.lngLat.lng, e.lngLat.lat);
-    if(!wardFeature){
-      wardPopup.remove();
-      hideWardInfoPanel();
+    wardPopup.remove();
+    if (layerState.wardBoundaries) {
+      const wardFeature = getWardFeatureAtLngLat(e.lngLat.lng, e.lngLat.lat);
+      if(!wardFeature){
+        hideWardInfoPanel();
+        return;
+      }
+      const props = wardFeature.properties || {};
+      const wardId = String(props.ward || '').toUpperCase();
+      const councilName = props.council_pe || '';
+      setSelectedWard(wardId, councilName);
       return;
     }
-    const props = wardFeature.properties || {};
-    const wardId = String(props.ward || '').toUpperCase();
-    const councilName = props.council_pe || '';
-    wardPopup.remove();
-    setSelectedWard(wardId, councilName);
+
+    if (layerState.districts) {
+      const districtFeature = getDistrictFeatureAtLngLat(e.lngLat.lng, e.lngLat.lat);
+      if(!districtFeature){
+        hideWardInfoPanel();
+        return;
+      }
+      const props = districtFeature.properties || {};
+      const districtId = String(props.id || '').toLowerCase();
+      const districtName = String(props.name || 'District');
+      const districtColor = String(props.color || '#e8eaed');
+      setSelectedDistrict(districtId, districtName, districtColor);
+      return;
+    }
+
+    hideWardInfoPanel();
   });
 
   const schoolPopup=new mapboxgl.Popup({closeButton:false,closeOnClick:false,offset:10});
@@ -2662,7 +2770,7 @@ function zoomToFeature(f){
 
 const wardBoundaryLayers=['wards-border','ward-labels','ward-selected-outline'];
 const wardFillLayers=['wards-fill'];
-const distLayers=['districts-fill','districts-border','district-labels'];
+const distLayers=['districts-fill','districts-border','district-selected-outline','district-labels'];
 const schoolLayers=['schools-points'];
 const libraryLayers=['libraries-points'];
 const affordableHousingLayers=['affordable-housing-circles'];
@@ -2717,7 +2825,12 @@ async function toggleLayer(group, forceVisible){
     }
   }
   if(group==='crimeHeatmap') heatmapLayers.forEach(l=>map.setLayoutProperty(l,'visibility',vis));
-  if(group==='districts') distLayers.forEach(l=>map.setLayoutProperty(l,'visibility',vis));
+  if(group==='districts') {
+    distLayers.forEach(l=>map.setLayoutProperty(l,'visibility',vis));
+    if(!layerState.districts && String(selectedFeatureKey || '').startsWith('district:')){
+      hideWardInfoPanel();
+    }
+  }
   if(group==='precincts') allMarkers.forEach(m=>{ m.el.style.display=vis==='visible'?'flex':'none'; });
   if(group==='schools') schoolLayers.forEach(l=>map.setLayoutProperty(l,'visibility',vis));
   if(group==='libraries') libraryLayers.forEach(l=>map.setLayoutProperty(l,'visibility',vis));
