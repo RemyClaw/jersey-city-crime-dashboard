@@ -1245,46 +1245,46 @@
     <div class="section-category-label category-default">Map Layers</div>
     <div class="toggle-row">
       <div class="toggle-label"><div class="toggle-swatch" style="background:linear-gradient(90deg,#e63946,#f4a261);opacity:.75;"></div>Ward Boundaries + Density</div>
-      <label class="toggle"><input type="checkbox" id="togWardBoundaries" onchange="toggleLayer('wardBoundaries')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" id="togWardBoundaries" data-layer="wardBoundaries" onchange="toggleLayer('wardBoundaries', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
       <div class="toggle-label"><div class="toggle-swatch" style="background:#4CC9F0;opacity:.5;"></div>Police Districts</div>
-      <label class="toggle"><input type="checkbox" id="togDistricts" checked onchange="toggleLayer('districts')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" id="togDistricts" data-layer="districts" checked onchange="toggleLayer('districts', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
       <div class="toggle-label"><div class="toggle-swatch" style="background:#7B61FF;border-radius:50%;width:14px;height:14px;"></div>Precinct Stations</div>
-      <label class="toggle"><input type="checkbox" id="togPrecincts" checked onchange="toggleLayer('precincts')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" id="togPrecincts" data-layer="precincts" checked onchange="toggleLayer('precincts', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
       <div class="toggle-label"><div class="toggle-swatch" style="background:#1d4ed8;border-radius:50%;"></div>PATH Stations</div>
-      <label class="toggle"><input type="checkbox" id="togPathStations" onchange="toggleLayer('pathStations')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" id="togPathStations" data-layer="pathStations" onchange="toggleLayer('pathStations', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="section-category-label category-crime">Crime Data</div>
     <div class="toggle-row">
       <div class="toggle-label"><div class="toggle-swatch" style="background:linear-gradient(90deg,#4ade80,#facc15,#fb923c,#ef4444);"></div>Crime Heatmap</div>
-      <label class="toggle"><input type="checkbox" id="togHeatmap" onchange="toggleLayer('crimeHeatmap')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" id="togHeatmap" data-layer="crimeHeatmap" onchange="toggleLayer('crimeHeatmap', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="section-category-label category-community">Community</div>
     <div class="toggle-row">
       <div class="toggle-label"><div class="toggle-swatch" style="background:#4ade80;border-radius:50%;"></div>Schools &amp; Daycares</div>
-      <label class="toggle"><input type="checkbox" id="togSchools" onchange="toggleLayer('schools')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" id="togSchools" data-layer="schools" onchange="toggleLayer('schools', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
       <div class="toggle-label"><div class="toggle-swatch" style="background:#60a5fa;border-radius:50%;"></div>Libraries</div>
-      <label class="toggle"><input type="checkbox" id="togLibraries" onchange="toggleLayer('libraries')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" id="togLibraries" data-layer="libraries" onchange="toggleLayer('libraries', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
       <div class="toggle-label"><div class="toggle-swatch" style="background:#f97316;border-radius:50%;"></div>Affordable Housing</div>
-      <label class="toggle"><input type="checkbox" id="togAffordableHousing" onchange="toggleLayer('affordableHousing')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" id="togAffordableHousing" data-layer="affordableHousing" onchange="toggleLayer('affordableHousing', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="section-category-label category-poi">POI Layers</div>
     <div class="toggle-row">
       <div class="toggle-label"><div class="toggle-swatch" style="background:#f43f5e;border-radius:50%;"></div>Liquor Stores &amp; Bars</div>
-      <label class="toggle"><input type="checkbox" id="toggle-liquor" onchange="toggleLayer('poiLiquor')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" id="toggle-liquor" data-layer="poiLiquor" onchange="toggleLayer('poiLiquor', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
       <div class="toggle-label"><div class="toggle-swatch" style="background:#22c55e;border-radius:50%;"></div>Parks &amp; Green Space</div>
-      <label class="toggle"><input type="checkbox" id="toggle-parks" onchange="toggleLayer('poiParks')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" id="toggle-parks" data-layer="poiParks" onchange="toggleLayer('poiParks', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="section-category-label category-muted">Safety (Coming Soon)</div>
     <div class="toggle-row locked-toggle-row" title="Coming soon — data verification in progress">
@@ -2489,6 +2489,7 @@ map.on('load',()=>{
   updatePathLegend();
   updatePoiLegend();
   updateHeatmapLegend();
+  syncAllLayerToggles();
 
   // Precinct markers
   precincts.forEach(p=>{
@@ -2525,6 +2526,10 @@ map.on('load',()=>{
   // Ward hover popup
   const wardPopup=new mapboxgl.Popup({closeButton:false,closeOnClick:false,offset:10});
   map.on('mousemove','wards-fill',e=>{
+    if(isMobileViewport()){
+      wardPopup.remove();
+      return;
+    }
     map.getCanvas().style.cursor='pointer';
     const props=e.features[0].properties, w=(props.ward||'').toUpperCase();
     const d=wardData[w]||{description:'',incidents:'N/A',level:'N/A',topCrime:'N/A',safetyScore:50};
@@ -2553,12 +2558,14 @@ map.on('load',()=>{
   map.on('click',(e)=>{
     const wardFeature = getWardFeatureAtLngLat(e.lngLat.lng, e.lngLat.lat);
     if(!wardFeature){
+      wardPopup.remove();
       hideWardInfoPanel();
       return;
     }
     const props = wardFeature.properties || {};
     const wardId = String(props.ward || '').toUpperCase();
     const councilName = props.council_pe || '';
+    wardPopup.remove();
     setSelectedWard(wardId, councilName);
   });
 
@@ -2666,9 +2673,29 @@ const poiLayerConfig = {
   poiParks: { source:'parks', layer:'parks-layer', loader:loadParksLayer }
 };
 
-async function toggleLayer(group){
-  layerState[group]=!layerState[group];
-  const vis=layerState[group]?'visible':'none';
+function syncLayerToggleInputs(group, isVisible){
+  document.querySelectorAll(`input[data-layer="${group}"]`).forEach((input)=>{
+    if (input.checked !== isVisible) {
+      input.checked = isVisible;
+    }
+  });
+}
+
+function isMobileViewport(){
+  return window.matchMedia('(max-width: 768px)').matches;
+}
+
+function syncAllLayerToggles(){
+  Object.entries(layerState).forEach(([group, isVisible])=>{
+    syncLayerToggleInputs(group, Boolean(isVisible));
+  });
+}
+
+async function toggleLayer(group, forceVisible){
+  const nextVisible = typeof forceVisible === 'boolean' ? forceVisible : !layerState[group];
+  layerState[group]=nextVisible;
+  syncLayerToggleInputs(group, nextVisible);
+  const vis=nextVisible?'visible':'none';
 
   if(poiLayerConfig[group]){
     const cfg = poiLayerConfig[group];
@@ -2812,21 +2839,21 @@ async function toggleLayer(group){
         <div class="sheet-layer-swatch" style="background:linear-gradient(90deg,#e63946,#f4a261);opacity:.8;"></div>
         Ward Boundaries
       </div>
-      <label class="toggle"><input type="checkbox" onchange="toggleLayer('wardBoundaries')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" data-layer="wardBoundaries" onchange="toggleLayer('wardBoundaries', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="sheet-layer-row">
       <div class="sheet-layer-label">
         <div class="sheet-layer-swatch" style="background:#4CC9F0;opacity:.6;"></div>
         Police Districts
       </div>
-      <label class="toggle"><input type="checkbox" checked onchange="toggleLayer('districts')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" data-layer="districts" checked onchange="toggleLayer('districts', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="sheet-layer-row">
       <div class="sheet-layer-label">
         <div class="sheet-layer-swatch round" style="background:#7B61FF;"></div>
         Precinct Stations
       </div>
-      <label class="toggle"><input type="checkbox" checked onchange="toggleLayer('precincts')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" data-layer="precincts" checked onchange="toggleLayer('precincts', this.checked)"><span class="slider"></span></label>
     </div>
 
     <div class="sheet-layer-category">Crime Data</div>
@@ -2835,7 +2862,7 @@ async function toggleLayer(group){
         <div class="sheet-layer-swatch" style="background:linear-gradient(90deg,#4ade80,#facc15,#fb923c,#ef4444);"></div>
         Crime Heatmap
       </div>
-      <label class="toggle"><input type="checkbox" onchange="toggleLayer('crimeHeatmap')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" data-layer="crimeHeatmap" onchange="toggleLayer('crimeHeatmap', this.checked)"><span class="slider"></span></label>
     </div>
 
     <div class="sheet-layer-category">Transit</div>
@@ -2844,7 +2871,7 @@ async function toggleLayer(group){
         <div class="sheet-layer-swatch round" style="background:#1d4ed8;"></div>
         PATH Stations
       </div>
-      <label class="toggle"><input type="checkbox" onchange="toggleLayer('pathStations')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" data-layer="pathStations" onchange="toggleLayer('pathStations', this.checked)"><span class="slider"></span></label>
     </div>
 
     <div class="sheet-layer-category">Community</div>
@@ -2853,21 +2880,21 @@ async function toggleLayer(group){
         <div class="sheet-layer-swatch round" style="background:#4ade80;"></div>
         Schools &amp; Daycares
       </div>
-      <label class="toggle"><input type="checkbox" onchange="toggleLayer('schools')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" data-layer="schools" onchange="toggleLayer('schools', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="sheet-layer-row">
       <div class="sheet-layer-label">
         <div class="sheet-layer-swatch round" style="background:#60a5fa;"></div>
         Libraries
       </div>
-      <label class="toggle"><input type="checkbox" onchange="toggleLayer('libraries')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" data-layer="libraries" onchange="toggleLayer('libraries', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="sheet-layer-row">
       <div class="sheet-layer-label">
         <div class="sheet-layer-swatch round" style="background:#f97316;"></div>
         Affordable Housing
       </div>
-      <label class="toggle"><input type="checkbox" onchange="toggleLayer('affordableHousing')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" data-layer="affordableHousing" onchange="toggleLayer('affordableHousing', this.checked)"><span class="slider"></span></label>
     </div>
 
     <div class="sheet-layer-category">Points of Interest</div>
@@ -2876,14 +2903,14 @@ async function toggleLayer(group){
         <div class="sheet-layer-swatch round" style="background:#f43f5e;"></div>
         Liquor Stores &amp; Bars
       </div>
-      <label class="toggle"><input type="checkbox" onchange="toggleLayer('poiLiquor')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" data-layer="poiLiquor" onchange="toggleLayer('poiLiquor', this.checked)"><span class="slider"></span></label>
     </div>
     <div class="sheet-layer-row">
       <div class="sheet-layer-label">
         <div class="sheet-layer-swatch round" style="background:#22c55e;"></div>
         Parks &amp; Green Space
       </div>
-      <label class="toggle"><input type="checkbox" onchange="toggleLayer('poiParks')"><span class="slider"></span></label>
+      <label class="toggle"><input type="checkbox" data-layer="poiParks" onchange="toggleLayer('poiParks', this.checked)"><span class="slider"></span></label>
     </div>
 
     <div class="sheet-layer-category">Coming Soon</div>
