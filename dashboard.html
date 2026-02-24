@@ -1313,6 +1313,10 @@
       <div class="toggle-label"><div class="toggle-swatch" style="background:#22c55e;border-radius:50%;"></div>Parks &amp; Green Space</div>
       <label class="toggle"><input type="checkbox" id="toggle-parks" data-layer="poiParks" onchange="toggleLayer('poiParks', this.checked)"><span class="slider"></span></label>
     </div>
+    <div class="toggle-row">
+      <div class="toggle-label"><div class="toggle-swatch" style="background:#ef4444;border-radius:50%;"></div>Hospitals &amp; Urgent Care</div>
+      <label class="toggle"><input type="checkbox" id="toggle-hospitals" data-layer="poiHospitals" onchange="toggleLayer('poiHospitals', this.checked)"><span class="slider"></span></label>
+    </div>
   </div>
 
   <div class="section section-collapsible">
@@ -1502,6 +1506,7 @@
       <div class="legend-section-title">POI Layers</div>
       <div class="legend-row" id="liquorLegendRow" style="display:none;"><div class="legend-dot" style="background:#f43f5e"></div>Liquor Stores &amp; Bars</div>
       <div class="legend-row" id="parksLegendRow" style="display:none;"><div class="legend-dot" style="background:#22c55e"></div>Parks &amp; Green Space</div>
+      <div class="legend-row" id="hospitalsLegendRow" style="display:none;"><div class="legend-dot" style="background:#ef4444"></div>Hospitals &amp; Urgent Care</div>
     </div>
     <div class="legend-section" id="heatmapLegend" style="display:none;">
       <div class="legend-section-title">Crime Heatmap</div>
@@ -1764,6 +1769,19 @@ const parksQuery = `
 out center;
 `;
 
+const hospitalsQuery = `
+[out:json][timeout:25][bbox:40.6500,-74.1400,40.7700,-74.0200];
+(
+  nwr["amenity"="hospital"];
+  nwr["healthcare"="hospital"];
+  nwr["healthcare"="clinic"]["healthcare:speciality"~"urgent_care|emergency",i];
+  nwr["amenity"="clinic"]["name"~"urgent care|immediate care|emergency|er",i];
+  nwr["healthcare"="centre"]["name"~"urgent care|immediate care|emergency|er",i];
+  nwr["healthcare"="doctor"]["name"~"urgent care|immediate care|emergency|er",i];
+);
+out center;
+`;
+
 const supplementalParks = [
   { name: "Metro Field", lat: 40.71039976821976, lon: -74.09482209821624 },
   { name: "Harmon Street Pool", lat: 40.71606416216135, lon: -74.07003968039884 },
@@ -1839,6 +1857,36 @@ function dedupeParkFeatures(features) {
       const dist = haversineMeters(lat, lon, item.lat, item.lon);
       if (sameName && dist < 200) return true;
       if (dist < 25) return true;
+      return false;
+    });
+
+    if (!duplicate) {
+      accepted.push(feature);
+      normalized.push({ lat, lon, name });
+    }
+  });
+
+  return accepted;
+}
+
+function dedupeHealthcareFeatures(features) {
+  const accepted = [];
+  const normalized = [];
+
+  (features || []).forEach((feature) => {
+    const coords = feature && feature.geometry && feature.geometry.coordinates;
+    if (!coords || coords.length < 2) return;
+    const lon = Number(coords[0]);
+    const lat = Number(coords[1]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+    const name = String((feature.properties && feature.properties.name) || '').trim().toLowerCase();
+
+    const duplicate = normalized.some((item) => {
+      const sameName = name && item.name && name === item.name;
+      const dist = haversineMeters(lat, lon, item.lat, item.lon);
+      if (sameName && dist < 175) return true;
+      if (dist < 40) return true;
       return false;
     });
 
@@ -1974,6 +2022,61 @@ async function loadLiquorLayer() {
     });
     map.on('mouseenter', 'liquor-stores-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'liquor-stores-layer', () => { map.getCanvas().style.cursor = ''; });
+  } finally {
+    hideLayerLoading();
+  }
+}
+
+async function loadHospitalsLayer() {
+  showLayerLoading('Hospitals & Urgent Care');
+  try {
+    const data = await fetchOverpassPOI(hospitalsQuery);
+    const dedupedFeatures = dedupeHealthcareFeatures((data && data.features) ? data.features : []);
+    const normalizedData = {
+      type: 'FeatureCollection',
+      features: dedupedFeatures
+    };
+
+    if (map.getSource('hospitals-urgent-care')) {
+      map.getSource('hospitals-urgent-care').setData(normalizedData);
+      return;
+    }
+
+    map.addSource('hospitals-urgent-care', { type: 'geojson', data: normalizedData });
+    map.addLayer({
+      id: 'hospitals-urgent-care-layer',
+      type: 'circle',
+      source: 'hospitals-urgent-care',
+      layout: { visibility: 'none' },
+      paint: {
+        'circle-radius': 6,
+        'circle-color': '#ef4444',
+        'circle-opacity': 0.84,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': '#0a0c10',
+        'circle-emissive-strength': 1
+      }
+    });
+
+    map.on('click', 'hospitals-urgent-care-layer', (e) => {
+      const p = e.features[0].properties || {};
+      const amenity = String(p.amenity || '').toLowerCase();
+      const healthcare = String(p.healthcare || '').toLowerCase();
+      const safeName = escapeHTML(p.name || 'Unnamed');
+      const typeLabel = amenity === 'hospital' || healthcare === 'hospital' ? 'Hospital' : 'Urgent Care';
+      const safeTypeLabel = escapeHTML(typeLabel);
+      new mapboxgl.Popup({ closeButton: false })
+        .setLngLat(e.features[0].geometry.coordinates)
+        .setHTML(`
+        <div style="font-family:'DM Sans',sans-serif;padding:4px">
+          <div style="font-family:'Space Mono',monospace;font-size:10px;color:#ef4444;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">${safeTypeLabel}</div>
+          <div style="font-size:13px;font-weight:600;color:#e8eaed">${safeName}</div>
+        </div>
+      `)
+        .addTo(map);
+    });
+    map.on('mouseenter', 'hospitals-urgent-care-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'hospitals-urgent-care-layer', () => { map.getCanvas().style.cursor = ''; });
   } finally {
     hideLayerLoading();
   }
@@ -2273,7 +2376,8 @@ const layerState = {
   affordableHousing:false,
   pathStations:false,
   poiLiquor:false,
-  poiParks:false
+  poiParks:false,
+  poiHospitals:false
 };
 const allMarkers = [];
 let selectedFeatureKey = null;
@@ -2448,11 +2552,13 @@ function updatePoiLegend(){
   const poiLegend = document.getElementById('poiLegend');
   const liquorLegendRow = document.getElementById('liquorLegendRow');
   const parksLegendRow = document.getElementById('parksLegendRow');
-  if(!poiLegend || !liquorLegendRow || !parksLegendRow) return;
+  const hospitalsLegendRow = document.getElementById('hospitalsLegendRow');
+  if(!poiLegend || !liquorLegendRow || !parksLegendRow || !hospitalsLegendRow) return;
 
   liquorLegendRow.style.display = layerState.poiLiquor ? 'flex' : 'none';
   parksLegendRow.style.display = layerState.poiParks ? 'flex' : 'none';
-  poiLegend.style.display = (layerState.poiLiquor || layerState.poiParks) ? 'block' : 'none';
+  hospitalsLegendRow.style.display = layerState.poiHospitals ? 'flex' : 'none';
+  poiLegend.style.display = (layerState.poiLiquor || layerState.poiParks || layerState.poiHospitals) ? 'block' : 'none';
 }
 
 function updateHeatmapLegend(){
@@ -2867,7 +2973,8 @@ const pathStationLayers=['path-stations-bg','path-stations-label'];
 const heatmapLayers=['crime-heatmap'];
 const poiLayerConfig = {
   poiLiquor: { source:'liquor-stores', layer:'liquor-stores-layer', loader:loadLiquorLayer },
-  poiParks: { source:'parks', layer:'parks-layer', loader:loadParksLayer }
+  poiParks: { source:'parks', layer:'parks-layer', loader:loadParksLayer },
+  poiHospitals: { source:'hospitals-urgent-care', layer:'hospitals-urgent-care-layer', loader:loadHospitalsLayer }
 };
 
 function syncLayerToggleInputs(group, isVisible){
@@ -3113,6 +3220,13 @@ async function toggleLayer(group, forceVisible){
         Parks &amp; Green Space
       </div>
       <label class="toggle"><input type="checkbox" data-layer="poiParks" onchange="toggleLayer('poiParks', this.checked)"><span class="slider"></span></label>
+    </div>
+    <div class="sheet-layer-row">
+      <div class="sheet-layer-label">
+        <div class="sheet-layer-swatch round" style="background:#ef4444;"></div>
+        Hospitals &amp; Urgent Care
+      </div>
+      <label class="toggle"><input type="checkbox" data-layer="poiHospitals" onchange="toggleLayer('poiHospitals', this.checked)"><span class="slider"></span></label>
     </div>
 
     <!-- Police Districts -->
