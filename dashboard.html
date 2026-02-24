@@ -1061,6 +1061,22 @@
       font-family: 'Space Mono', monospace;
       line-height: 1.5;
     }
+    .sheet-precinct-phone-link {
+      color: #60a5fa !important;
+      -webkit-text-fill-color: #60a5fa;
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+      font-weight: 600;
+      opacity: 0.95;
+    }
+    .sheet-precinct-phone-link:visited {
+      color: #60a5fa !important;
+      -webkit-text-fill-color: #60a5fa;
+    }
+    .sheet-precinct-phone-link:active {
+      opacity: 0.8;
+    }
     .sheet-precinct-wards {
       font-size: 0.6rem;
       color: #f0a500;
@@ -3107,7 +3123,7 @@ async function toggleLayer(group, forceVisible){
         <div class="sheet-precinct-info">
           <div class="sheet-precinct-name">North District</div>
           <div class="sheet-precinct-addr">282 Central Ave, JC 07307</div>
-          <div class="sheet-precinct-phone">(201) 547-5350</div>
+          <div class="sheet-precinct-phone"><a class="sheet-precinct-phone-link" href="tel:+12015475350">(201) 547-5350</a></div>
           <div class="sheet-precinct-wards">Wards C, D (Journal Square / The Heights)</div>
         </div>
       </div>
@@ -3116,7 +3132,7 @@ async function toggleLayer(group, forceVisible){
         <div class="sheet-precinct-info">
           <div class="sheet-precinct-name">South District</div>
           <div class="sheet-precinct-addr">191 Bergen Ave, JC 07305</div>
-          <div class="sheet-precinct-phone">(201) 547-5456</div>
+          <div class="sheet-precinct-phone"><a class="sheet-precinct-phone-link" href="tel:+12015475456">(201) 547-5456</a></div>
           <div class="sheet-precinct-wards">Wards A, B (Greenville / West Side)</div>
         </div>
       </div>
@@ -3125,7 +3141,7 @@ async function toggleLayer(group, forceVisible){
         <div class="sheet-precinct-info">
           <div class="sheet-precinct-name">East District</div>
           <div class="sheet-precinct-addr">207 7th Street, JC 07302</div>
-          <div class="sheet-precinct-phone">(201) 547-5408</div>
+          <div class="sheet-precinct-phone"><a class="sheet-precinct-phone-link" href="tel:+12015475408">(201) 547-5408</a></div>
           <div class="sheet-precinct-wards">Ward E (Historic Downtown)</div>
         </div>
       </div>
@@ -3134,7 +3150,7 @@ async function toggleLayer(group, forceVisible){
         <div class="sheet-precinct-info">
           <div class="sheet-precinct-name">West District</div>
           <div class="sheet-precinct-addr">1 Jackson St, JC 07304</div>
-          <div class="sheet-precinct-phone">(201) 547-5450</div>
+          <div class="sheet-precinct-phone"><a class="sheet-precinct-phone-link" href="tel:+12015475450">(201) 547-5450</a></div>
           <div class="sheet-precinct-wards">Ward F (Bergen-Lafayette)</div>
         </div>
       </div>
@@ -3146,14 +3162,15 @@ async function toggleLayer(group, forceVisible){
         <span>2025 Crime Numbers (Jan–Sep)</span><span class="sheet-accordion-arrow">+</span>
       </div>
       <div class="sheet-accordion-body">
-        <div class="sheet-crime-row"><span>Homicide</span><strong>10</strong></div>
-        <div class="sheet-crime-row"><span>Rape</span><strong>44</strong></div>
-        <div class="sheet-crime-row"><span>Robbery</span><strong>313</strong></div>
-        <div class="sheet-crime-row"><span>Aggravated Assault</span><strong>399</strong></div>
-        <div class="sheet-crime-row"><span>Burglary</span><strong>222</strong></div>
-        <div class="sheet-crime-row"><span>Larceny/Theft</span><strong>3,019</strong></div>
-        <div class="sheet-crime-row"><span>Motor Vehicle Theft</span><strong>648</strong></div>
-        <div class="sheet-crime-row"><span>Arson</span><strong>12</strong></div>
+        <div class="sheet-crime-row"><span>Homicides</span><strong>10</strong></div>
+        <div class="sheet-crime-row"><span>Shooting Incidents</span><strong>31</strong></div>
+        <div class="sheet-crime-row"><span>Shooting Victims</span><strong>40</strong></div>
+        <div class="sheet-crime-row"><span>Robbery</span><strong>294</strong></div>
+        <div class="sheet-crime-row"><span>Aggravated Assault</span><strong>742</strong></div>
+        <div class="sheet-crime-row"><span>Criminal Mischief</span><strong>1,706</strong></div>
+        <div class="sheet-crime-row"><span>Burglary</span><strong>375</strong></div>
+        <div class="sheet-crime-row"><span>Theft</span><strong>3,019</strong></div>
+        <div class="sheet-crime-row"><span>Stolen Vehicles</span><strong>648</strong></div>
       </div>
     </div>
 
