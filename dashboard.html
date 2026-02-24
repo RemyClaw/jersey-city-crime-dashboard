@@ -1662,16 +1662,16 @@ const heatmapPointsData = {
 
 const precincts = [
   { id:'north', name:'North District', address:'282 Central Ave, JC 07307', phone:'(201) 547-5350',
-    color:'#4CC9F0', coords:[-74.0502, 40.7444],
+    color:'#4CC9F0', coords:[-74.05024, 40.74444],
     wards:'Wards C, D (Journal Square / The Heights)', neighborhoods:'Journal Square Heights, Central Ave corridor, Pershing Field, Palisade Ave to Paterson Plank Rd' },
   { id:'south', name:'South District', address:'191 Bergen Ave, JC 07305', phone:'(201) 547-5456',
-    color:'#F72585', coords:[-74.0850, 40.7091],
+    color:'#F72585', coords:[-74.08498, 40.70910],
     wards:'Wards A, B (Greenville / West Side)', neighborhoods:'Greenville, West Side, Liberty State Park area, south to Bayonne border' },
   { id:'east',  name:'East District',  address:'207 7th Street, JC 07302', phone:'(201) 547-5408',
-    color:'#7B61FF', coords:[-74.0427, 40.7259],
+    color:'#7B61FF', coords:[-74.04270, 40.72589],
     wards:'Ward E (Historic Downtown)', neighborhoods:'Historic Downtown, Grove St, Newport, Waterfront, Hamilton Park, Van Vorst Park' },
   { id:'west',  name:'West District',  address:'1 Jackson St, JC 07304', phone:'(201) 547-5450',
-    color:'#FF9F1C', coords:[-74.0742, 40.7169],
+    color:'#FF9F1C', coords:[-74.07416, 40.71693],
     wards:'Ward F (Bergen-Lafayette)', neighborhoods:'Bergen-Lafayette, MLK Drive corridor, West Bergen, Communipaw Ave' }
 ];
 
@@ -2164,7 +2164,7 @@ const districtCenters = districtGeoJSON.features.reduce((acc, feature)=>{
 }, {});
 
 function getDistrictCenter(id, fallback){
-  return districtCenters[id] || normalizeLngLat(fallback) || [-74.066, 40.719];
+  return normalizeLngLat(fallback) || districtCenters[id] || [-74.066, 40.719];
 }
 
 
