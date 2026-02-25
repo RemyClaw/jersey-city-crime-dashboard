@@ -347,6 +347,16 @@ h1 {
   animation: fadeUp 0.8s 0.35s ease both;
 }
 
+.hero-updated {
+  margin-top: 14px;
+  font-size: 0.68rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--gray);
+  font-family: 'IBM Plex Mono', monospace;
+  animation: fadeUp 0.8s 0.4s ease both;
+}
+
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -434,6 +444,55 @@ h1 {
   text-transform: uppercase;
   margin-top: 6px;
   font-family: 'IBM Plex Mono', monospace;
+}
+
+/* QUICK HOW-IT-WORKS */
+.quick-steps {
+  position: relative;
+  z-index: 2;
+  margin: 28px auto 0;
+  max-width: 980px;
+  border: 1px solid rgba(232,87,26,0.16);
+  background: rgba(255,255,255,0.015);
+  border-radius: 6px;
+  padding: 18px 20px;
+  animation: fadeUp 0.8s 0.45s ease both;
+}
+.quick-steps-title {
+  font-size: 0.65rem;
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+  color: var(--amber);
+  font-family: 'IBM Plex Mono', monospace;
+  margin-bottom: 10px;
+}
+.quick-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.quick-step {
+  border: 1px solid var(--gray-dim);
+  background: rgba(0,0,0,0.18);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+.quick-step-num {
+  font-family: 'Bebas Neue', sans-serif;
+  color: var(--orange);
+  letter-spacing: 1px;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.quick-step-text {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: var(--white);
+  line-height: 1.45;
+}
+
+.quick-steps-hero {
+  margin-top: 20px;
 }
 
 /* TICKER */
@@ -837,6 +896,18 @@ footer {
   .zip {
     font-size: 3.5rem !important;
   }
+  .quick-steps {
+    margin-top: 14px;
+    padding: 12px;
+  }
+  .quick-steps-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .quick-step-text {
+    font-size: 0.74rem;
+    line-height: 1.35;
+  }
   .hero-actions {
     flex-direction: column;
     align-items: center;
@@ -986,6 +1057,25 @@ footer {
     <div class="hero-actions">
       <a href="dashboard.html" target="_blank" rel="noopener noreferrer" class="btn-primary">Open Dashboard</a>
       <a href="#features" class="btn-secondary">How It Works ↓</a>
+    </div>
+    <div class="hero-updated">Last updated: Q1 2026 data refresh</div>
+
+    <div class="quick-steps quick-steps-hero">
+      <div class="quick-steps-title">How to use the dashboard</div>
+      <div class="quick-steps-grid">
+        <div class="quick-step">
+          <div class="quick-step-num">01</div>
+          <div class="quick-step-text">Open the dashboard and choose a ward or neighborhood.</div>
+        </div>
+        <div class="quick-step">
+          <div class="quick-step-num">02</div>
+          <div class="quick-step-text">Check crime trends, safety context, schools, parks, and transit nearby.</div>
+        </div>
+        <div class="quick-step">
+          <div class="quick-step-num">03</div>
+          <div class="quick-step-text">Compare areas side by side before deciding where to live or visit.</div>
+        </div>
+      </div>
     </div>
   </div>
 
