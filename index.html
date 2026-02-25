@@ -951,6 +951,9 @@ footer {
     width: 100%;
     justify-content: center;
   }
+  .form-interest-group {
+    display: none;
+  }
   .sw { padding: 60px 20px; }
   .sw-full .inner { padding: 0 20px; }
   .contact-grid { grid-template-columns: 1fr; gap: 40px; }
@@ -1303,10 +1306,10 @@ footer {
     </div>
     <div class="contact-form reveal">
       <div id="formContent">
-        <p class="form-title">SEND A MESSAGE</p>
+        <p class="form-title">JOIN THE WAITLIST</p>
         <div class="form-group"><label>Your Name</label><input type="text" id="fname" placeholder="Jane Smith"></div>
         <div class="form-group"><label>Email Address</label><input type="email" id="femail" placeholder="jane@realty.com"></div>
-        <div class="form-group">
+        <div class="form-group form-interest-group">
           <label>I’m interested in...</label>
           <select id="finterest">
             <option value="">Select one</option>
@@ -1317,8 +1320,8 @@ footer {
           </select>
         </div>
         <div class="form-group"><label>Message</label><textarea id="fmessage" rows="3" placeholder="Tell us a bit about what you're looking for..."></textarea></div>
-        <button class="form-submit" onclick="submitForm()">SEND MESSAGE →</button>
-        <p class="form-note">// We typically respond within 24 hours.</p>
+        <button class="form-submit" onclick="submitForm()">JOIN WAITLIST →</button>
+        <p class="form-note">// We typically respond within 24 hours. No spam. Your info is never sold.</p>
       </div>
       <div class="form-success" id="formSuccess">
         <div style="font-size:3rem;margin-bottom:16px;">⚡</div>
