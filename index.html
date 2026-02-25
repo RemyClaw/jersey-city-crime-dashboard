@@ -398,6 +398,31 @@ h1 {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* PROOF STRIP */
+.proof-strip {
+  position: relative;
+  z-index: 2;
+  margin: 14px auto 0;
+  max-width: 920px;
+  border: 1px solid var(--gray-dim);
+  background: rgba(255,255,255,0.012);
+  border-radius: 4px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  animation: fadeUp 0.8s 0.48s ease both;
+}
+.proof-item {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.66rem;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+.proof-item b { color: var(--orange); font-weight: 600; }
+
 /* STATS BAR */
 .stats-bar {
   position: relative;
@@ -908,6 +933,15 @@ footer {
     font-size: 0.74rem;
     line-height: 1.35;
   }
+  .proof-strip {
+    gap: 8px;
+    padding: 10px;
+  }
+  .proof-item {
+    width: 100%;
+    text-align: center;
+    font-size: 0.63rem;
+  }
   .hero-actions {
     flex-direction: column;
     align-items: center;
@@ -1076,6 +1110,12 @@ footer {
           <div class="quick-step-text">Compare areas side by side before deciding where to live or visit.</div>
         </div>
       </div>
+    </div>
+
+    <div class="proof-strip">
+      <div class="proof-item"><b>Data source:</b> JCPD + public government records</div>
+      <div class="proof-item"><b>Coverage:</b> all 6 Jersey City wards</div>
+      <div class="proof-item"><b>Access:</b> free, no login</div>
     </div>
   </div>
 
