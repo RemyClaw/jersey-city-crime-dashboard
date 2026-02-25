@@ -1387,6 +1387,28 @@ window.addEventListener('scroll', () => {
   document.getElementById('navbar').style.background = window.scrollY > 60 ? 'rgba(8,8,8,0.98)' : 'rgba(8,8,8,0.85)';
 });
 
+// ANALYTICS HELPERS
+function trackEvent(name, params = {}) {
+  try {
+    if (typeof gtag === 'function') {
+      gtag('event', name, params);
+    }
+  } catch (e) {
+    // no-op
+  }
+}
+
+document.querySelectorAll('a[href^="dashboard.html"]').forEach((link) => {
+  link.addEventListener('click', () => {
+    const label = (link.textContent || 'dashboard-link').trim();
+    trackEvent('dashboard_click', {
+      event_category: 'engagement',
+      event_label: label,
+      link_url: link.getAttribute('href') || 'dashboard.html'
+    });
+  });
+});
+
 // FORM
 function submitForm() {
   const name = document.getElementById('fname').value.trim();
@@ -1404,6 +1426,10 @@ function submitForm() {
   .then(res => res.json())
   .then(data => {
     if (data.ok) {
+      trackEvent('waitlist_submit', {
+        event_category: 'lead',
+        event_label: (document.getElementById('finterest').value || 'unspecified').trim()
+      });
       document.getElementById('formContent').style.display = 'none';
       document.getElementById('formSuccess').classList.add('show');
     } else {
