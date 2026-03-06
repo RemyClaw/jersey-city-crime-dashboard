@@ -1307,8 +1307,8 @@
     <div class="section-label">Neighborhood Safety Scores</div>
     <div class="score-explainer">Scores are 0-100. Higher = safer. Based on verified crime data.</div>
     <div class="safety-view-toggle" role="tablist" aria-label="Neighborhood safety score view">
-      <button type="button" class="safety-view-btn is-active" data-view="ward" id="safety-view-ward">By Ward</button>
-      <button type="button" class="safety-view-btn" data-view="district" id="safety-view-district">By District</button>
+      <button type="button" class="safety-view-btn is-active" data-view="district" id="safety-view-district">By District</button>
+      <button type="button" class="safety-view-btn" data-view="ward" id="safety-view-ward">By Ward</button>
     </div>
     <div class="ward-list" id="wardList"></div>
   </div>
@@ -2525,7 +2525,7 @@ const wardInfoTopCrimeEl = document.getElementById('ward-info-topcrime');
 const wardInfoCouncilEl = document.getElementById('ward-info-council');
 const wardInfoCloseEl = document.getElementById('ward-info-close');
 const districtScoreData = buildDistrictScoreData();
-let safetyScoreView = 'ward';
+let safetyScoreView = 'district';
 const WARD_HASH_REGEX = /^#ward-([a-f])$/i;
 let mapHasLoaded = false;
 let pendingWardHashId = null;
@@ -2769,10 +2769,21 @@ function syncSafetyListSelection(){
 
 function renderWardSafetyList(){
   wardList.innerHTML = '';
-  [...wardsGeoJSON.features].sort((a,b)=>a.properties.ward.localeCompare(b.properties.ward)).forEach((f)=>{
+  const rankedWardFeatures = [...wardsGeoJSON.features]
+    .map((feature)=>{
+      const wardId = String((feature.properties && feature.properties.ward) || '').toUpperCase();
+      const details = wardData[wardId] || { incidents:0, safetyScore:50 };
+      const score = Number(details.safetyScore || calculateSafetyScore(details)) || 0;
+      const incidents = Number(details.incidents) || 0;
+      return { feature, score, incidents, wardId };
+    })
+    .sort((a, b)=> (b.score - a.score) || (a.incidents - b.incidents) || a.wardId.localeCompare(b.wardId));
+
+  rankedWardFeatures.forEach((entry)=>{
+    const f = entry.feature;
     const w = f.properties.ward.toUpperCase();
     const d = wardData[w] || {description:'',incidents:'N/A',dot:'#457b9d',safetyScore:50,topCrime:'N/A'};
-    const score = d.safetyScore || calculateSafetyScore(d);
+    const score = entry.score;
     const tier = getSafetyTier(score);
     const wardCode = escapeHTML(w);
     const wardDescription = escapeHTML(d.description);
@@ -2808,7 +2819,10 @@ function renderWardSafetyList(){
 
 function renderDistrictSafetyList(){
   wardList.innerHTML = '';
-  getDistrictSafetyRows().forEach((row)=>{
+  const rankedDistrictRows = getDistrictSafetyRows()
+    .sort((a, b)=> (b.score - a.score) || (a.totalIncidents - b.totalIncidents) || a.name.localeCompare(b.name));
+
+  rankedDistrictRows.forEach((row)=>{
     const tier = getSafetyTier(row.score);
     const districtName = escapeHTML(row.name);
     const topCrime = escapeHTML(row.topCrime);
@@ -2854,10 +2868,25 @@ function renderSafetyScoreList(){
 
 function setSafetyScoreView(view){
   if(view !== 'ward' && view !== 'district') return;
-  if(safetyScoreView === view) return;
+  const viewChanged = safetyScoreView !== view;
   safetyScoreView = view;
-  updateSafetyViewButtons();
-  renderSafetyScoreList();
+
+  const showWardMap = view === 'ward';
+  layerState.wardBoundaries = showWardMap;
+  layerState.districts = !showWardMap;
+  syncLayerToggleInputs('wardBoundaries', layerState.wardBoundaries);
+  syncLayerToggleInputs('districts', layerState.districts);
+  if (typeof map?.isStyleLoaded === 'function' && map.isStyleLoaded()) {
+    toggleLayer('wardBoundaries', showWardMap);
+    toggleLayer('districts', !showWardMap);
+  }
+
+  if (viewChanged) {
+    updateSafetyViewButtons();
+    renderSafetyScoreList();
+  } else {
+    updateSafetyViewButtons();
+  }
 }
 
 safetyViewButtons.forEach((btn)=>{
