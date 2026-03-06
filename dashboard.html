@@ -2801,7 +2801,10 @@ window.addEventListener('hashchange', () => {
 /* ── SIDEBAR: SAFETY SCORES ── */
 const wardList = document.getElementById('wardList');
 const mobileSafetyGrid = document.getElementById('mobileSafetyGrid');
-const safetyViewButtons = Array.from(document.querySelectorAll('.safety-view-btn'));
+
+function getSafetyViewButtons(){
+  return Array.from(document.querySelectorAll('.safety-view-btn'));
+}
 
 function getDistrictSafetyRows(){
   return districtWardGroups.map((group)=>{
@@ -2851,6 +2854,7 @@ function syncMobileSafetyGridSelection(){
 }
 
 function updateSafetyViewButtons(){
+  const safetyViewButtons = getSafetyViewButtons();
   safetyViewButtons.forEach((btn)=>{
     btn.classList.toggle('is-active', btn.dataset.view === safetyScoreView);
   });
@@ -3043,8 +3047,12 @@ function setSafetyScoreView(view){
   }
 }
 
-safetyViewButtons.forEach((btn)=>{
-  btn.addEventListener('click', ()=> setSafetyScoreView(btn.dataset.view));
+document.addEventListener('click', (event)=>{
+  const btn = event.target.closest('.safety-view-btn');
+  if(!btn) return;
+  const view = btn.dataset.view;
+  if(view !== 'ward' && view !== 'district') return;
+  setSafetyScoreView(view);
 });
 updateSafetyViewButtons();
 renderSafetyScoreList();
