@@ -206,6 +206,35 @@
     line-height: 1.5;
     font-style: italic;
   }
+  .safety-view-toggle{
+    display:flex;
+    gap:6px;
+    padding:0 16px 10px;
+  }
+  .safety-view-btn{
+    flex:1;
+    border:1px solid var(--border);
+    background:#0a0c10;
+    color:var(--muted);
+    border-radius:999px;
+    font-family:'DM Mono',monospace;
+    font-size:10px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    padding:6px 10px;
+    cursor:pointer;
+    transition:all .2s;
+  }
+  .safety-view-btn:hover{
+    color:var(--text);
+    border-color:rgba(232,87,26,.4);
+  }
+  .safety-view-btn.is-active{
+    color:var(--accent);
+    border-color:rgba(232,87,26,.65);
+    background:rgba(232,87,26,.12);
+    box-shadow:0 0 0 1px rgba(232,87,26,.25) inset;
+  }
   .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .stat-card {
     background: var(--card-bg);
@@ -438,6 +467,13 @@
   }
   .ward-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:3px;}
   .ward-incidents{font-size:10px;color:#6b7280;font-family:'Space Mono',monospace;}
+  .district-coverage{
+    margin-top:3px;
+    font-size:10px;
+    color:#8892a4;
+    font-family:'Space Mono',monospace;
+    line-height:1.35;
+  }
   .score-card{
     margin:8px 0 10px;
     border:1px solid #1e2229;
@@ -1270,6 +1306,10 @@
   <div class="section">
     <div class="section-label">Neighborhood Safety Scores</div>
     <div class="score-explainer">Scores are 0-100. Higher = safer. Based on verified crime data.</div>
+    <div class="safety-view-toggle" role="tablist" aria-label="Neighborhood safety score view">
+      <button type="button" class="safety-view-btn is-active" data-view="ward" id="safety-view-ward">By Ward</button>
+      <button type="button" class="safety-view-btn" data-view="district" id="safety-view-district">By District</button>
+    </div>
     <div class="ward-list" id="wardList"></div>
   </div>
 
@@ -1554,6 +1594,13 @@ const wardData = {
   'F':{ description:'Bergen-Lafayette',             incidents:118, level:'Lower',       topCrime:'Vandalism', color:'#1a472a', dot:'#74c69d', safetyScore:79 }
 };
 
+const districtWardGroups = [
+  { id:'north', name:'North District', wards:['D'] },
+  { id:'east',  name:'East District',  wards:['E'] },
+  { id:'west',  name:'West District',  wards:['C','B'] },
+  { id:'south', name:'South District', wards:['A','F'] }
+];
+
 const crimeStats2025 = {
   source: "JCPD Official Stats (NIBRS Data, subject to revision pending investigation)",
   coverage: "January - September 2025",
@@ -1583,11 +1630,52 @@ function calculateSafetyScore(ward){
 }
 
 function getSafetyTier(score){
-  if(score >= 80) return { label:'Peaceful', color:'#4ade80' };
-  if(score >= 65) return { label:'Good', color:'#86efac' };
-  if(score >= 50) return { label:'Fair', color:'#facc15' };
-  if(score >= 35) return { label:'Caution', color:'#fb923c' };
-  return { label:'High Risk', color:'#e63946' };
+  if(score >= 80) return { label:'Great', color:'#4ade80' };
+  if(score >= 65) return { label:'Good', color:'#facc15' };
+  if(score >= 50) return { label:'Fair', color:'#fb923c' };
+  return { label:'Caution', color:'#e63946' };
+}
+
+function getWardSafetyScoreById(wardId){
+  const details = wardData[wardId];
+  if(!details) return 0;
+  return Number(details.safetyScore || calculateSafetyScore(details)) || 0;
+}
+
+function buildDistrictScoreData(){
+  return districtWardGroups.reduce((acc, group)=>{
+    let weightedScoreTotal = 0;
+    let totalIncidents = 0;
+    const topCrimeCounts = {};
+    const coverageParts = [];
+
+    group.wards.forEach((wardId)=>{
+      const details = wardData[wardId];
+      if(!details) return;
+      const incidents = Number(details.incidents) || 0;
+      const score = getWardSafetyScoreById(wardId);
+      const topCrime = String(details.topCrime || 'N/A');
+
+      weightedScoreTotal += score * incidents;
+      totalIncidents += incidents;
+      topCrimeCounts[topCrime] = (topCrimeCounts[topCrime] || 0) + incidents;
+      coverageParts.push(`Ward ${wardId} (${details.description})`);
+    });
+
+    const score = totalIncidents > 0 ? Math.round(weightedScoreTotal / totalIncidents) : 0;
+    const topCrime = Object.entries(topCrimeCounts)
+      .sort((a, b)=> (b[1] - a[1]) || a[0].localeCompare(b[0]))[0]?.[0] || 'N/A';
+
+    acc[group.id] = {
+      id: group.id,
+      name: group.name,
+      score,
+      totalIncidents,
+      topCrime,
+      coverage: coverageParts.join(' + ')
+    };
+    return acc;
+  }, {});
 }
 
 function initCrimeChart(category) {
@@ -2436,12 +2524,8 @@ const wardInfoIncidentsEl = document.getElementById('ward-info-incidents');
 const wardInfoTopCrimeEl = document.getElementById('ward-info-topcrime');
 const wardInfoCouncilEl = document.getElementById('ward-info-council');
 const wardInfoCloseEl = document.getElementById('ward-info-close');
-const districtScoreData = {
-  north: { score:68, mix:'Ward D 86.1% · Ward C 13.6%', method:'Area-weighted ward overlap', coverage:'North District model' },
-  south: { score:49, mix:'Ward A 81.4% · Ward B 9.7% · Ward F 8.9%', method:'Area-weighted ward overlap', coverage:'South District model' },
-  east: { score:67, mix:'Ward E 34.2% · Ward A 25.9% · Ward F 25.6% · Wards B/C/D 14.3%', method:'Area-weighted ward overlap', coverage:'East District model' },
-  west: { score:63, mix:'Ward B 44.0% · Ward C 43.7% · Ward F 10.7% · Ward D 1.5%', method:'Area-weighted ward overlap', coverage:'West District model' }
-};
+const districtScoreData = buildDistrictScoreData();
+let safetyScoreView = 'ward';
 const WARD_HASH_REGEX = /^#ward-([a-f])$/i;
 let mapHasLoaded = false;
 let pendingWardHashId = null;
@@ -2454,6 +2538,12 @@ function getWardIdFromHash(hash){
 function setActiveWardListItem(wardId){
   document.querySelectorAll('.ward-item[data-ward]').forEach((item)=>{
     item.classList.toggle('is-active', !!wardId && item.dataset.ward === wardId);
+  });
+}
+
+function setActiveDistrictListItem(districtId){
+  document.querySelectorAll('.ward-item[data-district]').forEach((item)=>{
+    item.classList.toggle('is-active', !!districtId && item.dataset.district === districtId);
   });
 }
 
@@ -2484,6 +2574,7 @@ function clearWardSelectionVisuals() {
 function hideWardInfoPanel() {
   selectedFeatureKey = null;
   setActiveWardListItem(null);
+  setActiveDistrictListItem(null);
   clearWardSelectionVisuals();
   if (wardInfoPanelEl) wardInfoPanelEl.classList.remove('is-visible');
 }
@@ -2520,6 +2611,7 @@ function setSelectedWard(wardId, councilName) {
   }
   selectedFeatureKey = key;
   setActiveWardListItem(wardId);
+  setActiveDistrictListItem(null);
   if (map.getLayer('ward-selected-outline')) {
     map.setFilter('ward-selected-outline', ['==', ['upcase', ['get', 'ward']], wardId]);
   }
@@ -2533,17 +2625,18 @@ function showDistrictInfoPanel(districtId, districtName, districtColor){
   const details = districtScoreData[districtId];
   if (!details || !wardInfoPanelEl) return;
   const tier = getSafetyTier(details.score);
+  const title = details.name || (districtName && /district/i.test(String(districtName)) ? String(districtName) : `${districtName || 'District'} District`);
   if (wardInfoLabel1El) wardInfoLabel1El.textContent = 'Safety Score';
-  if (wardInfoLabel2El) wardInfoLabel2El.textContent = 'Ward Mix';
-  if (wardInfoLabel3El) wardInfoLabel3El.textContent = 'Method';
-  if (wardInfoLabel4El) wardInfoLabel4El.textContent = 'Coverage';
-  if (wardInfoTitleEl) wardInfoTitleEl.textContent = districtName || `${districtId} District`;
+  if (wardInfoLabel2El) wardInfoLabel2El.textContent = 'Total Incidents';
+  if (wardInfoLabel3El) wardInfoLabel3El.textContent = 'Top Crime';
+  if (wardInfoLabel4El) wardInfoLabel4El.textContent = 'Ward Coverage';
+  if (wardInfoTitleEl) wardInfoTitleEl.textContent = title;
   if (wardInfoScoreEl) {
     wardInfoScoreEl.textContent = `${details.score} ${tier.label}`;
     wardInfoScoreEl.style.color = safeColor(districtColor || tier.color, '#e8eaed');
   }
-  if (wardInfoIncidentsEl) wardInfoIncidentsEl.textContent = details.mix;
-  if (wardInfoTopCrimeEl) wardInfoTopCrimeEl.textContent = details.method;
+  if (wardInfoIncidentsEl) wardInfoIncidentsEl.textContent = `${details.totalIncidents}`;
+  if (wardInfoTopCrimeEl) wardInfoTopCrimeEl.textContent = details.topCrime;
   if (wardInfoCouncilEl) wardInfoCouncilEl.textContent = details.coverage;
   wardInfoPanelEl.classList.add('is-visible');
 }
@@ -2560,6 +2653,7 @@ function setSelectedDistrict(districtId, districtName, districtColor){
   }
   selectedFeatureKey = key;
   setActiveWardListItem(null);
+  setActiveDistrictListItem(districtId);
   if (map.getLayer('district-selected-outline')) {
     map.setFilter('district-selected-outline', ['==', ['get', 'id'], districtId]);
   }
@@ -2633,41 +2727,144 @@ window.addEventListener('hashchange', () => {
   activateWardFromHash(window.location.hash);
 });
 
-/* ── SIDEBAR: WARDS ── */
+/* ── SIDEBAR: SAFETY SCORES ── */
 const wardList = document.getElementById('wardList');
-[...wardsGeoJSON.features].sort((a,b)=>a.properties.ward.localeCompare(b.properties.ward)).forEach(f=>{
-  const w=f.properties.ward.toUpperCase(), d=wardData[w]||{description:'',incidents:'N/A',dot:'#457b9d',safetyScore:50};
-  const score = d.safetyScore || calculateSafetyScore(d);
-  const tier = getSafetyTier(score);
-  const wardCode = escapeHTML(w);
-  const wardDescription = escapeHTML(d.description);
-  const topCrime = escapeHTML(d.topCrime);
-  const incidents = escapeHTML(d.incidents);
-  const dotColor = safeColor(d.dot);
-  const tierColor = safeColor(tier.color, '#6b7280');
-  const tierLabel = escapeHTML(tier.label.toUpperCase());
-  const el=document.createElement('div'); el.className='ward-item';
-  el.dataset.ward = w;
-  el.innerHTML=`
-    <div class="ward-dot" style="background:${dotColor}"></div>
-    <div class="ward-content">
-      <div class="ward-main-row">
-        <div class="ward-name">Ward ${wardCode} — ${wardDescription}</div>
-        <div class="ward-score-pill" style="background:${tierColor};">${score} ${tierLabel}</div>
-      </div>
-      <div class="ward-meta">
-        <div class="ward-top-crime">Top crime: ${topCrime}</div>
-        <div class="ward-incidents">${incidents} incidents</div>
-      </div>
-    </div>`;
-  el.addEventListener('click',()=>{
-    zoomToFeature(f);
-    const wardId = ((f.properties && f.properties.ward) || '').toUpperCase();
-    const councilName = (f.properties && f.properties.council_pe) || '';
-    setSelectedWard(wardId, councilName);
+const safetyViewButtons = Array.from(document.querySelectorAll('.safety-view-btn'));
+
+function getDistrictSafetyRows(){
+  return districtWardGroups.map((group)=>{
+    const details = districtScoreData[group.id] || { score:0, totalIncidents:0, topCrime:'N/A', coverage:'' };
+    return {
+      id: group.id,
+      name: group.name,
+      score: details.score,
+      totalIncidents: details.totalIncidents,
+      topCrime: details.topCrime,
+      coverage: details.coverage,
+      color: safeColor((districtStyle[group.id] || {}).color, '#e8eaed')
+    };
   });
-  wardList.appendChild(el);
+}
+
+function updateSafetyViewButtons(){
+  safetyViewButtons.forEach((btn)=>{
+    btn.classList.toggle('is-active', btn.dataset.view === safetyScoreView);
+  });
+}
+
+function syncSafetyListSelection(){
+  if(String(selectedFeatureKey || '').startsWith('ward:')){
+    setActiveWardListItem(selectedFeatureKey.split(':')[1] || null);
+    setActiveDistrictListItem(null);
+    return;
+  }
+  if(String(selectedFeatureKey || '').startsWith('district:')){
+    setActiveDistrictListItem(selectedFeatureKey.split(':')[1] || null);
+    setActiveWardListItem(null);
+    return;
+  }
+  setActiveWardListItem(null);
+  setActiveDistrictListItem(null);
+}
+
+function renderWardSafetyList(){
+  wardList.innerHTML = '';
+  [...wardsGeoJSON.features].sort((a,b)=>a.properties.ward.localeCompare(b.properties.ward)).forEach((f)=>{
+    const w = f.properties.ward.toUpperCase();
+    const d = wardData[w] || {description:'',incidents:'N/A',dot:'#457b9d',safetyScore:50,topCrime:'N/A'};
+    const score = d.safetyScore || calculateSafetyScore(d);
+    const tier = getSafetyTier(score);
+    const wardCode = escapeHTML(w);
+    const wardDescription = escapeHTML(d.description);
+    const topCrime = escapeHTML(d.topCrime);
+    const incidents = escapeHTML(d.incidents);
+    const dotColor = safeColor(d.dot);
+    const tierColor = safeColor(tier.color, '#6b7280');
+    const tierLabel = escapeHTML(tier.label.toUpperCase());
+    const el = document.createElement('div');
+    el.className = 'ward-item';
+    el.dataset.ward = w;
+    el.innerHTML = `
+      <div class="ward-dot" style="background:${dotColor}"></div>
+      <div class="ward-content">
+        <div class="ward-main-row">
+          <div class="ward-name">Ward ${wardCode} — ${wardDescription}</div>
+          <div class="ward-score-pill" style="background:${tierColor};">${score} ${tierLabel}</div>
+        </div>
+        <div class="ward-meta">
+          <div class="ward-top-crime">Top crime: ${topCrime}</div>
+          <div class="ward-incidents">${incidents} incidents</div>
+        </div>
+      </div>`;
+    el.addEventListener('click', ()=>{
+      zoomToFeature(f);
+      const wardId = ((f.properties && f.properties.ward) || '').toUpperCase();
+      const councilName = (f.properties && f.properties.council_pe) || '';
+      setSelectedWard(wardId, councilName);
+    });
+    wardList.appendChild(el);
+  });
+}
+
+function renderDistrictSafetyList(){
+  wardList.innerHTML = '';
+  getDistrictSafetyRows().forEach((row)=>{
+    const tier = getSafetyTier(row.score);
+    const districtName = escapeHTML(row.name);
+    const topCrime = escapeHTML(row.topCrime);
+    const incidents = Number(row.totalIncidents || 0).toLocaleString();
+    const coverage = escapeHTML(row.coverage);
+    const dotColor = safeColor(row.color, '#e8eaed');
+    const tierColor = safeColor(tier.color, '#6b7280');
+    const tierLabel = escapeHTML(tier.label.toUpperCase());
+    const el = document.createElement('div');
+    el.className = 'ward-item';
+    el.dataset.district = row.id;
+    el.innerHTML = `
+      <div class="ward-dot" style="background:${dotColor}"></div>
+      <div class="ward-content">
+        <div class="ward-main-row">
+          <div class="ward-name">${districtName}</div>
+          <div class="ward-score-pill" style="background:${tierColor};">${row.score} ${tierLabel}</div>
+        </div>
+        <div class="ward-meta">
+          <div class="ward-top-crime">Top crime: ${topCrime}</div>
+          <div class="ward-incidents">${incidents} incidents</div>
+        </div>
+        <div class="district-coverage">${coverage}</div>
+      </div>`;
+    el.addEventListener('click', ()=>{
+      const districtCenter = getDistrictCenter(row.id, null);
+      map.flyTo({ center: districtCenter, zoom: 13.3, duration: 800 });
+      setSelectedDistrict(row.id, row.name, row.color);
+    });
+    wardList.appendChild(el);
+  });
+}
+
+function renderSafetyScoreList(){
+  if(!wardList) return;
+  if(safetyScoreView === 'district'){
+    renderDistrictSafetyList();
+  }else{
+    renderWardSafetyList();
+  }
+  syncSafetyListSelection();
+}
+
+function setSafetyScoreView(view){
+  if(view !== 'ward' && view !== 'district') return;
+  if(safetyScoreView === view) return;
+  safetyScoreView = view;
+  updateSafetyViewButtons();
+  renderSafetyScoreList();
+}
+
+safetyViewButtons.forEach((btn)=>{
+  btn.addEventListener('click', ()=> setSafetyScoreView(btn.dataset.view));
 });
+updateSafetyViewButtons();
+renderSafetyScoreList();
 
 /* ── SIDEBAR: PRECINCTS ── */
 const precinctList=document.getElementById('precinctList');
