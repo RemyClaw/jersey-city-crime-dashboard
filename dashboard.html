@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BlockIQ JC — Jersey City Neighborhood Intelligence</title>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://api.mapbox.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://api.mapbox.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://api.mapbox.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.mapbox.com https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com https://overpass-api.de https://lz4.overpass-api.de https://overpass.kumi.systems https://www.google-analytics.com https://region1.google-analytics.com https://stats.g.doubleclick.net https://www.googletagmanager.com; worker-src 'self' blob:; child-src 'self' blob:; form-action 'self'; upgrade-insecure-requests; block-all-mixed-content">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.mapbox.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://api.mapbox.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://api.mapbox.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.mapbox.com https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com https://overpass-api.de https://lz4.overpass-api.de https://overpass.kumi.systems https://www.google-analytics.com https://region1.google-analytics.com https://stats.g.doubleclick.net https://www.googletagmanager.com; worker-src 'self' blob:; child-src 'self' blob:; form-action 'self'; upgrade-insecure-requests; block-all-mixed-content">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
-<meta http-equiv="X-Frame-Options" content="DENY">
 <meta http-equiv="Permissions-Policy" content="geolocation=(), camera=(), microphone=(), payment=(), usb=(), gyroscope=(), magnetometer=()">
+<link rel="icon" href="data:,">
 <link rel="canonical" href="https://blockiqjc.com/dashboard.html">
 <script type="application/ld+json">
 {
@@ -511,6 +511,7 @@
   input:checked+.slider:before{transform:translateX(16px);}
   .data-note { padding:16px 20px; font-size:10px; color:var(--muted); line-height:1.6; font-family:'Space Mono',monospace; }
   #map { flex:1; position:relative; }
+  #map-canvas { position:absolute; inset:0; }
   #legend { position:absolute; bottom:30px; right:20px; background:#111318ee; border:1px solid #1e2229; border-radius:8px; padding:13px 15px; z-index:5; }
   .legend-section { margin-bottom:10px; }
   .legend-section:last-child{margin-bottom:0;}
@@ -684,6 +685,7 @@
       height: 100dvh;
       z-index: 1;
     }
+    #map-canvas { position:absolute; inset:0; }
 
     /* Hide desktop sidebar */
     #sidebar {
@@ -1566,6 +1568,7 @@
 </div>
 
 <div id="map">
+  <div id="map-canvas"></div>
   <div id="ward-info-panel" aria-live="polite">
     <button type="button" class="ward-info-close" id="ward-info-close" aria-label="Close ward details">×</button>
     <div class="ward-info-title" id="ward-info-title"></div>
@@ -2549,7 +2552,7 @@ function getDistrictFeatureAtLngLat(lng, lat) {
 
 /* ── MAP INIT ── */
 const map = new mapboxgl.Map({
-  container:'map', style:'mapbox://styles/mapbox/standard',
+  container:'map-canvas', style:'mapbox://styles/mapbox/standard',
   center:[-74.0776,40.7282], zoom:12.2
 });
 map.addControl(new mapboxgl.NavigationControl(),'top-right');
@@ -2800,7 +2803,9 @@ window.addEventListener('hashchange', () => {
 
 /* ── SIDEBAR: SAFETY SCORES ── */
 const wardList = document.getElementById('wardList');
-const mobileSafetyGrid = document.getElementById('mobileSafetyGrid');
+function getMobileSafetyGrid(){
+  return document.getElementById('mobileSafetyGrid');
+}
 
 function getSafetyViewButtons(){
   return Array.from(document.querySelectorAll('.safety-view-btn'));
@@ -2919,6 +2924,7 @@ function renderWardSafetyList(){
 }
 
 function renderMobileSafetyGrid(){
+  const mobileSafetyGrid = getMobileSafetyGrid();
   if(!mobileSafetyGrid) return;
   mobileSafetyGrid.innerHTML = '';
 
@@ -3006,7 +3012,7 @@ function renderDistrictSafetyList(){
 }
 
 function renderSafetyScoreList(){
-  if(!wardList && !mobileSafetyGrid) return;
+  if(!wardList && !getMobileSafetyGrid()) return;
   if(safetyScoreView === 'district'){
     renderDistrictSafetyList();
   }else{
@@ -3513,6 +3519,10 @@ async function toggleLayer(group, forceVisible){
     overlay.addEventListener('click', closeSheet);
     if (sheetHandle) sheetHandle.addEventListener('click', toggleSheet);
 
+    // Mobile safety controls are rendered after script parse; refresh once DOM is complete.
+    if (typeof renderSafetyScoreList === 'function') renderSafetyScoreList();
+    if (typeof updateSafetyViewButtons === 'function') updateSafetyViewButtons();
+
   }
 
   if (document.readyState === 'loading') {
@@ -3535,8 +3545,8 @@ async function toggleLayer(group, forceVisible){
     <!-- Ward Safety Scores -->
     <div class="sheet-section-title">Neighborhood Safety Scores</div>
     <div class="sheet-safety-toggle" role="tablist" aria-label="Mobile safety score view">
-      <button type="button" class="sheet-safety-btn safety-view-btn is-active" data-view="district" id="mobile-safety-view-district">By District</button>
-      <button type="button" class="sheet-safety-btn safety-view-btn" data-view="ward" id="mobile-safety-view-ward">By Ward</button>
+      <button type="button" class="sheet-safety-btn safety-view-btn is-active" data-view="district" id="mobile-safety-view-district" onclick="setSafetyScoreView('district')">By District</button>
+      <button type="button" class="sheet-safety-btn safety-view-btn" data-view="ward" id="mobile-safety-view-ward" onclick="setSafetyScoreView('ward')">By Ward</button>
     </div>
     <div class="sheet-ward-grid is-district" id="mobileSafetyGrid"></div>
 
@@ -3684,7 +3694,7 @@ async function toggleLayer(group, forceVisible){
         <div class="sheet-precinct-badge ed">ED</div>
         <div class="sheet-precinct-info">
           <div class="sheet-precinct-name">East District</div>
-          <div class="sheet-precinct-addr">207 7th Street, JC 07302</div>
+          <div class="sheet-precinct-addr">Temporary Trailer Unit, 465 Marin Blvd, JC 07302</div>
           <div class="sheet-precinct-phone"><a class="sheet-precinct-phone-link" href="tel:+12015475408">(201) 547-5408</a></div>
           <div class="sheet-precinct-wards">Ward E (Historic Downtown)</div>
         </div>
